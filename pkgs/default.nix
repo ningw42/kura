@@ -27,4 +27,5 @@ in
   telepush = callPackage ./telepush { };
   transmissionic = callPackage ./transmissionic { };
   trguing = callPackage ./trguing { };
+  zfs-dfree = callPackage ./zfs-dfree { };
 }
