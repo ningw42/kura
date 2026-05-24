@@ -25,4 +25,5 @@ in
   smartthings-soundbar = callPythonPackage ./smartthings-soundbar { };
   subsonic-now-playing-overlay = callPackage ./subsonic-now-playing-overlay { };
   telepush = callPackage ./telepush { };
+  transmissionic = callPackage ./transmissionic { };
 }
