@@ -19,5 +19,6 @@ in
         dependencies = (old.dependencies or [ ]) ++ base.optional-dependencies.proxy;
       })
     );
+  multi-scrobbler = callPackage ./multi-scrobbler { };
   sing-box-alpha = callPackage ./sing-box-alpha { };
 }
