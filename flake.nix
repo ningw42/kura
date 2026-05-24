@@ -13,21 +13,20 @@
         "aarch64-darwin"
       ];
       forSupportedSystems = nixpkgs.lib.genAttrs supportedSystems;
-      pkgsFor = forSupportedSystems (
-        system:
-        import nixpkgs {
-          inherit system;
-          overlays = [ self.overlays.default ];
-        }
-      );
+      # Plain nixpkgs per system; kura packages currently only depend on
+      # nixpkgs, so we don't apply self.overlays.default here. If a future
+      # kura package needs to consume another kura package, switch the
+      # overlay to use `final` (instead of `prev`) and re-apply it.
+      pkgsFor = forSupportedSystems (system: import nixpkgs { inherit system; });
     in
     {
       # Overlay consumers add to their own pkgs to get every kura package
       # exposed as a top-level attribute (e.g. pkgs.brave-search-mcp-server).
       overlays.default = final: prev: import ./pkgs { pkgs = prev; };
 
-      # Pre-built packages, indexed by system. Garnix builds these on every
-      # push and uploads to cache.garnix.io, so consumers never recompile.
+      # Per-system packages. Exposed for both supportedSystems so consumers
+      # on either platform can pull them. Garnix decides separately (in
+      # garnix.yaml) which of these to actually build and cache.
       packages = forSupportedSystems (
         system:
         let
