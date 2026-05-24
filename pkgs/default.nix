@@ -22,4 +22,5 @@ in
   multi-scrobbler = callPackage ./multi-scrobbler { };
   router-maestro = callPackage ./router-maestro { };
   sing-box-alpha = callPackage ./sing-box-alpha { };
+  smartthings-soundbar = callPythonPackage ./smartthings-soundbar { };
 }
