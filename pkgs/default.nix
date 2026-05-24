@@ -23,4 +23,5 @@ in
   router-maestro = callPackage ./router-maestro { };
   sing-box-alpha = callPackage ./sing-box-alpha { };
   smartthings-soundbar = callPythonPackage ./smartthings-soundbar { };
+  subsonic-now-playing-overlay = callPackage ./subsonic-now-playing-overlay { };
 }
