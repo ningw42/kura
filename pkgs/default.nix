@@ -26,4 +26,5 @@ in
   subsonic-now-playing-overlay = callPackage ./subsonic-now-playing-overlay { };
   telepush = callPackage ./telepush { };
   transmissionic = callPackage ./transmissionic { };
+  trguing = callPackage ./trguing { };
 }
