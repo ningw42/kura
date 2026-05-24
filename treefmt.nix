@@ -9,4 +9,7 @@
     "*.yaml"
     "*.yml"
   ];
+  programs.yamlfmt.excludes = [
+    ".pre-commit-config.yaml"
+  ];
 }
