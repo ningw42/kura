@@ -21,6 +21,7 @@ in
   multi-scrobbler = callPackage ./multi-scrobbler { };
   router-maestro = callPackage ./router-maestro { };
   sing-box-alpha = callPackage ./sing-box-alpha { };
+  skim = callPackage ./skim { };
   smartthings-soundbar = callPythonPackage ./smartthings-soundbar { };
   subsonic-now-playing-overlay = callPackage ./subsonic-now-playing-overlay { };
   telepush = callPackage ./telepush { };
