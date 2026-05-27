@@ -59,7 +59,12 @@ python3Packages.buildPythonApplication rec {
   # tests require network access
   doCheck = false;
 
-  passthru.updateScript = nix-update-script { };
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--flake"
+      "--use-github-releases"
+    ];
+  };
 
   meta = {
     description = "Multi-model routing router with OpenAI-compatible and Anthropic-compatible APIs";

@@ -2,6 +2,7 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
+  nix-update-script,
   uv-build,
   aiohttp,
   click,
@@ -109,6 +110,15 @@ buildPythonPackage rec {
   pythonRelaxDeps = true;
 
   doCheck = false;
+
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--flake"
+      "--use-github-releases"
+      "--version-regex"
+      "^v?([0-9]+\\.[0-9]+\\.[0-9]+)$"
+    ];
+  };
 
   meta = {
     description = "Use any LLM as a drop in replacement for gpt-3.5-turbo";

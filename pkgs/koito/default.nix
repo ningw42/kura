@@ -119,6 +119,19 @@ stdenvNoCC.mkDerivation {
 
   passthru = {
     inherit frontend backend;
+    updateScript = [
+      ../_update/run.sh
+      # Two attrs so nix-update updates each set of hashes:
+      #   koito.backend  -> shared version, src.hash, vendorHash
+      #   koito.frontend -> yarnOfflineCache.outputHash (nix-update native)
+      "--attr"
+      "koito.backend"
+      "--attr"
+      "koito.frontend"
+      "--use-github-releases"
+      "--post-hook"
+      "sync-go-builder:gabehf/koito:v"
+    ];
   };
 
   meta = {

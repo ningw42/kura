@@ -15,4 +15,13 @@ buildGo126Module rec {
   };
 
   vendorHash = "sha256-ov36gbMmdQb8UFL70Ys0C5hZ+356MTf5PUtAIdR/xIU=";
+
+  passthru.updateScript = [
+    ../_update/run.sh
+    "--attr"
+    "telepush"
+    "--use-github-releases"
+    "--post-hook"
+    "sync-go-builder:muety/telepush:"
+  ];
 }

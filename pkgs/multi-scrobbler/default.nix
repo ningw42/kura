@@ -64,4 +64,13 @@ buildNpmPackage rec {
     maintainers = [ ];
     mainProgram = "multi-scrobbler";
   };
+
+  passthru.updateScript = [
+    ../_update/run.sh
+    "--attr"
+    "multi-scrobbler"
+    "--use-github-releases"
+    "--pre-hook"
+    "regen-npm-lockfile:FoxxMD/multi-scrobbler::legacy-peer-deps"
+  ];
 }

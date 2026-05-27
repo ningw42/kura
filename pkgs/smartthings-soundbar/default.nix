@@ -16,4 +16,10 @@ buildHomeAssistantComponent rec {
   };
 
   dontBuild = true;
+
+  # buildHomeAssistantComponent inherits an updateScript from its base, but
+  # (a) it's not --flake aware and (b) the pname is `<owner>/<domain>` which
+  # the nixpkgs update runner can't use as a log filename. Clear it so we
+  # never get picked up by `nix run .#update`.
+  passthru.updateScript = null;
 }

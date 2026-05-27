@@ -60,6 +60,21 @@ buildGoModule (finalAttrs: {
     install -Dm444 release/config/sing-box-split-dns.xml $out/share/dbus-1/system.d/sing-box-split-dns.conf
   '';
 
+  passthru.updateScript = [
+    ../_update/run.sh
+    "--attr"
+    "sing-box-alpha"
+    "--use-github-releases"
+    "--version"
+    "unstable"
+    # Pin to the current alpha series (1.14.*-alpha.*), with a capture group
+    # so nix-update can extract the version from the matched tag.
+    "--version-regex"
+    "^v?(1\\.14\\.[0-9]+-alpha\\.[0-9]+)$"
+    "--post-hook"
+    "sync-go-builder:SagerNet/sing-box:v"
+  ];
+
   meta = {
     homepage = "https://sing-box.sagernet.org";
     description = "Universal proxy platform (1.14 alpha)";

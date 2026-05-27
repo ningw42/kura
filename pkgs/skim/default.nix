@@ -70,7 +70,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   passthru = {
     tests.version = testers.testVersion { package = skim; };
-    updateScript = nix-update-script { };
+    updateScript = nix-update-script {
+      extraArgs = [
+        "--flake"
+        "--use-github-releases"
+      ];
+    };
   };
 
   meta = {

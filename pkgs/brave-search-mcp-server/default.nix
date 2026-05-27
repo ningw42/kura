@@ -53,4 +53,13 @@ buildNpmPackage rec {
     license = licenses.mit;
     mainProgram = "brave-search-mcp-server";
   };
+
+  passthru.updateScript = [
+    ../_update/run.sh
+    "--attr"
+    "brave-search-mcp-server"
+    "--use-github-releases"
+    "--pre-hook"
+    "regen-npm-lockfile:brave/brave-search-mcp-server:v"
+  ];
 }
