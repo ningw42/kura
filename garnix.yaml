@@ -5,4 +5,5 @@ builds:
     # aarch64-darwin is intentionally not built by default — few kura
     # packages target macOS. Add specific paths here to opt in, e.g.:
     #   - "packages.aarch64-darwin.some-package"
+    - "packages.aarch64-darwin.skim"
   branch: master
