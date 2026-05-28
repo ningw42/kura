@@ -15,7 +15,6 @@ pkgs/
   _update/             # shared updater library (see "Updating packages")
     run.sh             # the shared driver
     hooks.sh           # named hook functions (sync-go-builder, regen-npm-lockfile)
-    token.sh           # loads GITHUB_TOKEN from ~/.config/nix/access-tokens.conf
     runner.nix         # wraps nixpkgs' maintainers/scripts/update.nix
 treefmt.nix            # nixfmt + yamlfmt config
 git-hooks.nix          # pre-commit hooks (treefmt, convco, etc.)
@@ -121,7 +120,7 @@ This skips the package entirely. The runner filters out null `updateScript`s bef
 
 ## Pitfalls observed
 
-- `nix-update` reads `GITHUB_TOKEN` from env but does **not** read `~/.config/nix/access-tokens.conf` (only `nix-prefetch-github` does). `pkgs/_update/token.sh` bridges the file to the env var. Without it, version-discovery hits 60/hr unauthenticated; with it, 5000/hr.
+- `nix-update` reads `GITHUB_TOKEN` from env but does **not** read `~/.config/nix/access-tokens.conf` (only `nix-prefetch-github` does). The `apps.update` shell wrapper in `flake.nix` bridges the file to the env var before invoking the runner, so every downstream `nix-update` call (both shared-driver and plain `nix-update-script` ones) inherits it. Without that bridge, version-discovery hits 60/hr unauthenticated; with it, 5000/hr.
 - `pkgs/_update/run.sh` lives in the nix store at runtime; `$BASH_SOURCE` points there. The flake root is `$PWD` (the runner cd's there before invoking).
 - The runner leaves `<pname>.log` files in the cwd; `.gitignore` already covers `*.log`.
 - The nixpkgs runner wraps every invocation in `nix-shell ${nixpkgs_root}/shell.nix --run …`. That's why `shell.nix` at the repo root is required, even though humans use `nix develop` instead.

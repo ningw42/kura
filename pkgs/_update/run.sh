@@ -26,8 +26,6 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_ROOT="$PWD"
 
-# shellcheck source=token.sh
-source "$HERE/token.sh"
 # shellcheck source=hooks.sh
 source "$HERE/hooks.sh"
 

@@ -53,7 +53,7 @@ What happens under the hood: `pkgs/_update/runner.nix` wraps nixpkgs' standard `
 
 ### A few things to know
 
-- **Authenticated GitHub API.** `pkgs/_update/token.sh` reads `~/.config/nix/access-tokens.conf` and exports `GITHUB_TOKEN` so `nix-update` doesn't get rate-limited at 60/hr. Make sure that file exists (it's the same one `nix.settings.access-tokens` writes).
+- **Authenticated GitHub API.** The `apps.update` shell wrapper in `flake.nix` reads `~/.config/nix/access-tokens.conf` and exports `GITHUB_TOKEN` so `nix-update` doesn't get rate-limited at 60/hr. Make sure that file exists (it's the same one `nix.settings.access-tokens` writes).
 - **Already-current packages are a no-op.** The driver short-circuits before doing real work if the upstream version matches what's checked in.
 - **Pre/post hooks.** A few packages need work that `nix-update` can't do on its own: bumping `buildGoNNModule` to match upstream `go.mod`, regenerating an npm lockfile with npm 10 because upstream's npm 11 lockfile drops `resolved` URLs, etc. These live as named functions in `pkgs/_update/hooks.sh` and are wired declaratively in each package's `default.nix`.
 

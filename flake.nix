@@ -106,6 +106,15 @@
               pkgs.git
             ];
             text = ''
+              # Bridge ~/.config/nix/access-tokens.conf -> GITHUB_TOKEN so every
+              # downstream nix-update call (both shared-driver and plain
+              # nix-update-script ones) hits the 5000/hr authenticated limit
+              # instead of 60/hr. nix-update itself doesn't read the file.
+              if [[ -z "''${GITHUB_TOKEN:-}" && -f "$HOME/.config/nix/access-tokens.conf" ]]; then
+                GITHUB_TOKEN=$(sed -n 's/.*github\.com=\([^ ]*\).*/\1/p' \
+                  "$HOME/.config/nix/access-tokens.conf")
+                export GITHUB_TOKEN
+              fi
               args=(
                 --argstr flakePath "${toString ./.}"
                 --argstr system "${system}"
