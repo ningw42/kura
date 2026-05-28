@@ -67,6 +67,7 @@ When wiring `passthru.updateScript` on a package, pick the simplest pattern that
 |---|---|---|---|
 | `sync-go-builder` | `sync-go-builder:<owner>/<repo>:<tag-prefix>` | Read upstream `go.mod`, bump pinned `buildGoNNModule`. No-op if `default.nix` uses unpinned `buildGoModule`. | telepush, sing-box-alpha, koito |
 | `regen-npm-lockfile` | `regen-npm-lockfile:<owner>/<repo>:<tag-prefix>[:legacy-peer-deps]` | Clone the new tag, strip `scripts`, pin direct deps, regenerate `package-lock.json` with npm 10. Pre-hook only. | brave-search-mcp-server, multi-scrobbler |
+| `regen-yarn-berry-missing-hashes` | `regen-yarn-berry-missing-hashes:<owner>/<repo>:<tag-prefix>:<path-to-yarn.lock>` | Fetch upstream `yarn.lock` and regenerate `missing-hashes.json` via `yarn-berry-fetcher missing-hashes`. Pre-hook only — must run before `nix-update` because the `offlineCache` output hash depends on both files. | koito |
 
 To add a new hook: write the function in `pkgs/_update/hooks.sh` (reads `$KURA_PKG_DIR` and `$KURA_VERSION` from env), then add a `case` branch in `_run_hook` in `pkgs/_update/run.sh`.
 

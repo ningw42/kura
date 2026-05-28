@@ -22,5 +22,6 @@ pkgs.mkShellNoCC {
     pkgs.gawk
     pkgs.prefetch-npm-deps
     pkgs.nodejs_22
+    pkgs.yarn-berry_4-fetcher.yarn-berry-fetcher
   ];
 }

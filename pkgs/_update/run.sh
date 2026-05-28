@@ -97,8 +97,9 @@ _run_hook() {
   local spec="$1"
   IFS=':' read -r name arg1 arg2 arg3 <<<"$spec"
   case "$name" in
-    sync-go-builder)     sync_go_builder    "$arg1" "$arg2" ;;
-    regen-npm-lockfile)  regen_npm_lockfile "$arg1" "$arg2" "${arg3:-}" ;;
+    sync-go-builder)                  sync_go_builder                  "$arg1" "$arg2" ;;
+    regen-npm-lockfile)               regen_npm_lockfile               "$arg1" "$arg2" "${arg3:-}" ;;
+    regen-yarn-berry-missing-hashes)  regen_yarn_berry_missing_hashes  "$arg1" "$arg2" "${arg3:-}" ;;
     *) echo "[run.sh] ERROR: unknown hook '$name'" >&2; exit 1 ;;
   esac
 }

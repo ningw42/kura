@@ -85,3 +85,29 @@ regen_npm_lockfile() {
   cp "$work/source/package-lock.json" "$KURA_PKG_DIR/package-lock.json"
   echo "[regen-npm-lockfile] Wrote $KURA_PKG_DIR/package-lock.json"
 }
+
+# regen-yarn-berry-missing-hashes:<owner>/<repo>:<tag-prefix>:<path-to-yarn.lock-in-src>
+# Fetch the upstream yarn.lock for the target tag and (re)generate
+# $KURA_PKG_DIR/missing-hashes.json so it stays in sync with the lockfile
+# fetchYarnBerryDeps will see. Must run BEFORE nix-update, because the
+# offlineCache's output hash is derived from both files.
+regen_yarn_berry_missing_hashes() {
+  local owner_repo="$1" tag_prefix="${2:-}" lock_path="${3:-yarn.lock}"
+  local raw_url="https://raw.githubusercontent.com/${owner_repo}/${tag_prefix}${KURA_VERSION}/${lock_path}"
+
+  echo "[regen-yarn-berry-missing-hashes] Fetching $raw_url..."
+  local work
+  work=$(mktemp -d)
+  trap "rm -rf '$work'" RETURN
+
+  if ! curl -fsSL "$raw_url" -o "$work/yarn.lock"; then
+    echo "[regen-yarn-berry-missing-hashes] ERROR: could not fetch $raw_url" >&2
+    return 1
+  fi
+
+  # `yarn-berry-fetcher missing-hashes` writes JSON to stdout and download
+  # progress to stderr; let stderr through so the user sees activity.
+  yarn-berry-fetcher missing-hashes "$work/yarn.lock" >"$work/missing-hashes.json"
+  mv "$work/missing-hashes.json" "$KURA_PKG_DIR/missing-hashes.json"
+  echo "[regen-yarn-berry-missing-hashes] Wrote $KURA_PKG_DIR/missing-hashes.json"
+}
