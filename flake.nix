@@ -27,10 +27,10 @@
         "aarch64-darwin"
       ];
       forSupportedSystems = nixpkgs.lib.genAttrs supportedSystems;
-      # Plain nixpkgs per system; kura packages currently only depend on
-      # nixpkgs, so we don't apply self.overlays.default here. If a future
-      # kura package needs to consume another kura package, switch the
-      # overlay to use `final` (instead of `prev`) and re-apply it.
+      # Plain nixpkgs per system. Used to build every output (packages,
+      # checks, devShells, ...) against kura's *own* pinned nixpkgs, so the
+      # garnix-cached store paths exposed via `overlays.default` stay
+      # consumer-agnostic.
       pkgsFor = forSupportedSystems (system: import nixpkgs { inherit system; });
 
       treefmtEval = forSupportedSystems (
@@ -51,7 +51,23 @@
     {
       # Overlay consumers add to their own pkgs to get every kura package
       # exposed as a top-level attribute (e.g. pkgs.brave-search-mcp-server).
-      overlays.default = final: prev: import ./pkgs { pkgs = prev; };
+      #
+      # This is a "pointer overlay": it hands the consumer the pre-built
+      # store paths from `self.packages.${system}`, which were evaluated
+      # against kura's own pinned nixpkgs (see `pkgsFor` above). That keeps
+      # the derivation hash identical to what garnix built and cached, so
+      # consumers always hit the binary cache — even when their own nixpkgs
+      # pin differs from ours.
+      #
+      # Tradeoffs vs. a `callPackage`-style overlay:
+      #   - Consumers can't override deps via `pkgs.foo.override { ... }` —
+      #     the path is sealed.
+      #   - Kura packages can't compose with each other through the consumer's
+      #     `final`/`prev`. Compose inside `pkgs/default.nix` instead.
+      #   - May duplicate libc / openssl / ... in the closure when consumer's
+      #     nixpkgs pin differs from ours. Acceptable for a personal package
+      #     set; the cache-hit win dominates.
+      overlays.default = _final: prev: self.packages.${prev.stdenv.hostPlatform.system} or { };
 
       # Per-system packages. Exposed for both supportedSystems so consumers
       # on either platform can pull them. Garnix decides separately (in

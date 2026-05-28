@@ -31,6 +31,12 @@ nix flake check --no-build        # evaluates flake; does not build
 
 `packages.<system>` is exposed for `x86_64-linux` and `aarch64-darwin`. Garnix only builds the Linux set; Darwin attrs evaluate but aren't cached unless added to `garnix.yaml`.
 
+## Overlay shape
+
+`overlays.default` is a **pointer overlay**: it hands consumers `self.packages.${system}` verbatim, so they get the exact garnix-cached store path regardless of their own nixpkgs pin. The full rationale (and tradeoffs) live in the comment on `overlays.default` in `flake.nix`.
+
+Consequence for package authors: kura packages can't compose through the consumer's `final`/`prev`. If one kura package needs another, wire it inside `pkgs/default.nix` directly (the `pkgs` arg there is kura's own pinned nixpkgs — see `pkgsFor` in `flake.nix`).
+
 ## Updating packages
 
 Every updatable package declares `passthru.updateScript`. The entry point is a flake app:
