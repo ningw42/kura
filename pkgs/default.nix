@@ -7,6 +7,7 @@ in
 {
   brave-search-mcp-server = callPackage ./brave-search-mcp-server { };
   clash-premium = callPackage ./clash-premium { };
+  fzf = callPackage ./fzf { };
   koito = callPackage ./koito { };
   lazygit = callPackage ./lazygit { };
   litellm =
