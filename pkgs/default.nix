@@ -8,6 +8,7 @@ in
   brave-search-mcp-server = callPackage ./brave-search-mcp-server { };
   clash-premium = callPackage ./clash-premium { };
   koito = callPackage ./koito { };
+  lazygit = callPackage ./lazygit { };
   litellm =
     let
       py = pkgs.python313Packages;
