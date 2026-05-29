@@ -5,11 +5,21 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 ## What's in here
 
 ```
-brave-search-mcp-server   clash-premium    fzf            koito
-lazygit                   litellm          multi-scrobbler
-router-maestro            sing-box-alpha (1.14 alpha)     skim
-smartthings-soundbar (Home Assistant)      subsonic-now-playing-overlay
-telepush                  transmissionic   trguing
+brave-search-mcp-server
+clash-premium
+fzf
+koito
+lazygit
+litellm
+multi-scrobbler
+router-maestro
+sing-box-alpha (1.14 alpha)
+skim
+smartthings-soundbar (Home Assistant)
+subsonic-now-playing-overlay
+telepush
+transmissionic
+trguing
 ```
 
 See `pkgs/<name>/default.nix` for each derivation.
