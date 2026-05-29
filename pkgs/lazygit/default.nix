@@ -31,6 +31,7 @@ buildGoModule (finalAttrs: {
     updateScript = nix-update-script {
       extraArgs = [
         "--flake"
+        "--use-github-releases"
         "--version-regex"
         "^v([0-9.]+)$"
       ];
