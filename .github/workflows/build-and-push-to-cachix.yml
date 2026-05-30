@@ -101,24 +101,7 @@ jobs:
         with:
           name: kura
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Check if ${{ matrix.package }} is already in Cachix
-        id: cache-check
-        run: |
-          set -euo pipefail
-          out_path=$(nix eval --raw ".#packages.x86_64-linux.${{ matrix.package }}")
-          hash=$(basename "$out_path" | cut -d- -f1)
-          status=$(curl -sSI -o /dev/null -w "%{http_code}" \
-            "https://kura.cachix.org/$hash.narinfo")
-          echo "out_path=$out_path"
-          echo "hash=$hash"
-          echo "narinfo status: $status"
-          if [[ "$status" == "200" ]]; then
-            echo "cached=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "cached=false" >> "$GITHUB_OUTPUT"
-          fi
       - name: Build ${{ matrix.package }}
-        if: steps.cache-check.outputs.cached != 'true'
         run: nix build --print-build-logs ".#packages.x86_64-linux.${{ matrix.package }}"
   build-darwin:
     name: build ${{ matrix.package }} (aarch64-darwin)
@@ -143,22 +126,5 @@ jobs:
         with:
           name: kura
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Check if ${{ matrix.package }} is already in Cachix
-        id: cache-check
-        run: |
-          set -euo pipefail
-          out_path=$(nix eval --raw ".#packages.aarch64-darwin.${{ matrix.package }}")
-          hash=$(basename "$out_path" | cut -d- -f1)
-          status=$(curl -sSI -o /dev/null -w "%{http_code}" \
-            "https://kura.cachix.org/$hash.narinfo")
-          echo "out_path=$out_path"
-          echo "hash=$hash"
-          echo "narinfo status: $status"
-          if [[ "$status" == "200" ]]; then
-            echo "cached=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "cached=false" >> "$GITHUB_OUTPUT"
-          fi
       - name: Build ${{ matrix.package }}
-        if: steps.cache-check.outputs.cached != 'true'
         run: nix build --print-build-logs ".#packages.aarch64-darwin.${{ matrix.package }}"
