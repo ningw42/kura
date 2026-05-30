@@ -1,6 +1,6 @@
 # kura
 
-A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs version lags behind upstream. Cached on [Garnix](https://garnix.io/) so consumers don't have to rebuild from source.
+A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs version lags behind upstream. Cached on [Garnix](https://garnix.io/) and [Cachix](https://www.cachix.org/) so consumers don't have to rebuild from source.
 
 ## What's in here
 
@@ -106,16 +106,33 @@ The first `nix develop` after cloning or after editing `git-hooks.nix` will inst
 
 ## Caching
 
-Builds happen on Garnix for `master`. Substituter and key:
+Two independent build-and-cache pipelines run off `master`, both driven by `garnix.yaml`:
+
+- **Garnix** (primary). Builds whatever `garnix.yaml` lists and serves it from `cache.garnix.io`.
+- **GitHub Actions → Cachix** (secondary). The `Build & push to Cachix` workflow at `.github/workflows/build-and-cache.yml` parses the same `garnix.yaml`, matrix-builds each package, and pushes the closure to `kura.cachix.org`. Runs on push to `master` and on manual dispatch.
+
+To consume both caches, add either or both substituters to your Nix config:
 
 ```nix
 nix.settings = {
-  substituters = [ "https://cache.garnix.io" ];
-  trusted-public-keys = [ "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g=" ];
+  substituters = [
+    "https://cache.garnix.io"
+    "https://kura.cachix.org"
+  ];
+  trusted-public-keys = [
+    "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+    "kura.cachix.org-1:nOM/8zHJpVt4prp0lyU3LQNsKPmo37BFiOw8q+Gm8TQ="
+  ];
 };
 ```
 
-`garnix.yaml` controls what gets built. To add Darwin builds for a specific package, add `packages.aarch64-darwin.<name>` under `builds.include`.
+`garnix.yaml` controls what both pipelines build. To add Darwin builds for a specific package, add `packages.aarch64-darwin.<name>` under `builds.include` — both Garnix and the GitHub Actions workflow pick it up automatically.
+
+### Setting up the Cachix pipeline (one-time)
+
+1. Create the `kura` cache on <https://app.cachix.org>.
+2. Generate a write auth token and add it as the `CACHIX_AUTH_TOKEN` repo secret.
+3. Copy the cache's public key into the `trusted-public-keys` snippet above (and update this README).
 
 ## Repo layout
 

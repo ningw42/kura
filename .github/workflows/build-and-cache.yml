@@ -1,0 +1,164 @@
+name: Build & push to Cachix
+# Mirror of the Garnix pipeline that pushes to a second cache (Cachix). Keeps
+# `garnix.yaml` as the source of truth for what to build per platform: the
+# discovery job parses `builds.include` and fans the matrix out from there.
+#
+# Setup required (one-time):
+#   1. Create the `kura` cache on https://app.cachix.org
+#   2. Generate an auth token and add it as the `CACHIX_AUTH_TOKEN` repo secret
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+concurrency:
+  group: build-and-cache-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  discover:
+    name: Discover packages from garnix.yaml
+    runs-on: ubuntu-latest
+    outputs:
+      linux: ${{ steps.matrix.outputs.linux }}
+      darwin: ${{ steps.matrix.outputs.darwin }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build matrix from garnix.yaml
+        id: matrix
+        run: |
+          set -euo pipefail
+
+          # Parse `builds.include` from garnix.yaml into one attr-path per line.
+          mapfile -t includes < <(yq -r '.builds.include[]' garnix.yaml)
+
+          # For each entry, expand `packages.<system>.*` wildcards by evaluating
+          # the flake; pass through specific `packages.<system>.<name>` entries
+          # as-is. Group by system so each platform gets its own matrix.
+          linux=()
+          darwin=()
+          for entry in "${includes[@]}"; do
+            case "$entry" in
+              packages.x86_64-linux.\*)
+                while IFS= read -r name; do
+                  linux+=("$name")
+                done < <(nix eval --json '.#packages.x86_64-linux' \
+                  --apply 'builtins.attrNames' | jq -r '.[]')
+                ;;
+              packages.x86_64-linux.*)
+                linux+=("${entry#packages.x86_64-linux.}")
+                ;;
+              packages.aarch64-darwin.\*)
+                while IFS= read -r name; do
+                  darwin+=("$name")
+                done < <(nix eval --json '.#packages.aarch64-darwin' \
+                  --apply 'builtins.attrNames' | jq -r '.[]')
+                ;;
+              packages.aarch64-darwin.*)
+                darwin+=("${entry#packages.aarch64-darwin.}")
+                ;;
+              *)
+                echo "::warning::ignoring unsupported garnix include: $entry"
+                ;;
+            esac
+          done
+
+          linux_json=$(printf '%s\n' ${linux[@]+"${linux[@]}"} | jq -R . | jq -sc 'map(select(length>0))')
+          darwin_json=$(printf '%s\n' ${darwin[@]+"${darwin[@]}"} | jq -R . | jq -sc 'map(select(length>0))')
+          echo "linux=$linux_json"   >> "$GITHUB_OUTPUT"
+          echo "darwin=$darwin_json" >> "$GITHUB_OUTPUT"
+          echo "Linux:  $linux_json"
+          echo "Darwin: $darwin_json"
+  build-linux:
+    name: build ${{ matrix.package }} (x86_64-linux)
+    needs: discover
+    if: needs.discover.outputs.linux != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        package: ${{ fromJSON(needs.discover.outputs.linux) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      # Sets up `kura.cachix.org` as a substituter AND launches `cachix
+      # watch-store` in the background — any path that lands in /nix/store
+      # during this job is pushed to the cache automatically. That's why
+      # there's no explicit `cachix push` step.
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: kura
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Check if ${{ matrix.package }} is already in Cachix
+        id: cache-check
+        run: |
+          set -euo pipefail
+          out_path=$(nix eval --raw ".#packages.x86_64-linux.${{ matrix.package }}")
+          hash=$(basename "$out_path" | cut -d- -f1)
+          status=$(curl -sSI -o /dev/null -w "%{http_code}" \
+            "https://kura.cachix.org/$hash.narinfo")
+          echo "out_path=$out_path"
+          echo "hash=$hash"
+          echo "narinfo status: $status"
+          if [[ "$status" == "200" ]]; then
+            echo "cached=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cached=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build ${{ matrix.package }}
+        if: steps.cache-check.outputs.cached != 'true'
+        run: nix build --print-build-logs ".#packages.x86_64-linux.${{ matrix.package }}"
+  build-darwin:
+    name: build ${{ matrix.package }} (aarch64-darwin)
+    needs: discover
+    if: needs.discover.outputs.darwin != '[]'
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        package: ${{ fromJSON(needs.discover.outputs.darwin) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: kura
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Check if ${{ matrix.package }} is already in Cachix
+        id: cache-check
+        run: |
+          set -euo pipefail
+          out_path=$(nix eval --raw ".#packages.aarch64-darwin.${{ matrix.package }}")
+          hash=$(basename "$out_path" | cut -d- -f1)
+          status=$(curl -sSI -o /dev/null -w "%{http_code}" \
+            "https://kura.cachix.org/$hash.narinfo")
+          echo "out_path=$out_path"
+          echo "hash=$hash"
+          echo "narinfo status: $status"
+          if [[ "$status" == "200" ]]; then
+            echo "cached=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cached=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build ${{ matrix.package }}
+        if: steps.cache-check.outputs.cached != 'true'
+        run: nix build --print-build-logs ".#packages.aarch64-darwin.${{ matrix.package }}"

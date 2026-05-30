@@ -1,6 +1,6 @@
 # Repository overview for AI agents
 
-This is **kura** (蔵, "storehouse") — a personal Nix flake holding packages that aren't in nixpkgs, or whose nixpkgs version is stale. It exists to back another flake (the owner's nixos/home-manager config) without forking nixpkgs.
+This is **kura** — a personal Nix flake holding packages that aren't in nixpkgs, or whose nixpkgs version is stale. It exists to back another flake (the owner's nixos/home-manager config) without forking nixpkgs.
 
 ## Layout
 
@@ -18,7 +18,9 @@ pkgs/
     runner.nix         # wraps nixpkgs' maintainers/scripts/update.nix
 treefmt.nix            # nixfmt + yamlfmt config
 git-hooks.nix          # pre-commit hooks (treefmt, convco, etc.)
-garnix.yaml            # tells Garnix which attrs to build & cache (x86_64-linux only by default)
+garnix.yaml            # tells Garnix (and the GitHub Actions cachix pipeline) which attrs to build & cache
+.github/workflows/
+  build-and-cache.yml  # mirror pipeline: matrix-builds garnix.yaml attrs, pushes to kura.cachix.org
 ```
 
 ## Building a package
@@ -115,7 +117,7 @@ This skips the package entirely. The runner filters out null `updateScript`s bef
 - **Commit messages**: conventional commits, enforced by `convco` in pre-commit hooks. Common types here: `feat(<pkg>)`, `build(<pkg>)`, `refactor(...)`, `chore(...)`. Scope is usually the package name or a subsystem (`flake`, `update`, `gitignore`). See recent `git log --oneline` for the local idiom.
 - **No Co-Authored-By trailers.** The owner removes them when amending — don't add them.
 - **Formatting**: `nix fmt` runs treefmt (nixfmt + yamlfmt). Also runs via pre-commit. If pre-commit reformats during a commit, just re-stage and re-commit.
-- **Single-platform default**: only `x86_64-linux` is cached by Garnix. `aarch64-darwin` is supported for evaluation but only specific packages get cached (opt in via `garnix.yaml`).
+- **Single-platform default**: only `x86_64-linux` is built by default. `aarch64-darwin` is supported for evaluation but only specific packages get built and cached (opt in via `garnix.yaml`; both Garnix and the GitHub Actions Cachix workflow read the same list).
 - **Avoid creating new docs files** unless explicitly asked. This file (AGENTS.md) and README.md are the canonical entry points; CLAUDE.md is a one-line shim that includes this file.
 
 ## Pitfalls observed

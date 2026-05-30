@@ -1,5 +1,5 @@
 {
-  description = "Ning's personal Nix package collection (kura, 蔵). Cached via Garnix.";
+  description = "Ning's personal Nix package collection (kura). Cached via Garnix.";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
