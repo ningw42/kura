@@ -1,4 +1,4 @@
-name: Build & push to Cachix
+name: Build & Push to Cachix
 # Mirror of the Garnix pipeline that pushes to a second cache (Cachix). Keeps
 # `garnix.yaml` as the source of truth for what to build per platform: the
 # discovery job parses `builds.include` and fans the matrix out from there.
