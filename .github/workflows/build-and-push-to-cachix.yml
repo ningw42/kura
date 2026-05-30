@@ -11,6 +11,12 @@ on:
   push:
     branches:
       - master
+    paths:
+      - "pkgs/**"
+      - "flake.nix"
+      - "flake.lock"
+      - "garnix.yaml"
+      - ".github/workflows/build-and-push-to-cachix.yml"
 concurrency:
   group: build-and-cache-${{ github.ref }}
   cancel-in-progress: false
