@@ -29,4 +29,5 @@ in
   telepush = callPackage ./telepush { };
   transmissionic = callPackage ./transmissionic { };
   trguing = callPackage ./trguing { };
+  zashboard = callPackage ./zashboard { };
 }
