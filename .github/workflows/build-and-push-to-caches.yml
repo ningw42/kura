@@ -1,4 +1,4 @@
-name: Build & Push to Cachix
+name: Build & Push to Caches
 # Mirror of the Garnix pipeline that pushes to two secondary caches in
 # parallel: Cachix (kura.cachix.org) and our self-hosted Attic at
 # cache.ningwang.me/kura. Keeps `garnix.yaml` as the source of truth for what
