@@ -1,11 +1,16 @@
 name: Build & Push to Cachix
-# Mirror of the Garnix pipeline that pushes to a second cache (Cachix). Keeps
-# `garnix.yaml` as the source of truth for what to build per platform: the
-# discovery job parses `builds.include` and fans the matrix out from there.
+# Mirror of the Garnix pipeline that pushes to two secondary caches in
+# parallel: Cachix (kura.cachix.org) and our self-hosted Attic at
+# cache.ningwang.me/kura. Keeps `garnix.yaml` as the source of truth for what
+# to build per platform: the discovery job parses `builds.include` and fans
+# the matrix out from there.
 #
 # Setup required (one-time):
-#   1. Create the `kura` cache on https://app.cachix.org
-#   2. Generate an auth token and add it as the `CACHIX_AUTH_TOKEN` repo secret
+#   1. Create the `kura` cache on https://app.cachix.org, generate an auth
+#      token, and add it as the `CACHIX_AUTH_TOKEN` repo secret.
+#   2. On the Attic server, mint a push+pull token scoped to `kura` (e.g.
+#      `atticd-atticadm make-token --sub gha --validity 1y --push kura
+#      --pull kura`) and add it as the `ATTIC_TOKEN` repo secret.
 on:
   workflow_dispatch:
   push:
@@ -107,6 +112,15 @@ jobs:
         with:
           name: kura
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      # Same idea, but pushes to our self-hosted Attic cache. The action
+      # registers cache.ningwang.me/kura as a substituter and pushes any new
+      # store paths at the end of the job.
+      - name: Setup Attic
+        uses: ryanccn/attic-action@v0.5.0
+        with:
+          endpoint: https://cache.ningwang.me/
+          cache: kura
+          token: ${{ secrets.ATTIC_TOKEN }}
       - name: Build ${{ matrix.package }}
         run: nix build --print-build-logs ".#packages.x86_64-linux.${{ matrix.package }}"
   build-darwin:
@@ -132,5 +146,11 @@ jobs:
         with:
           name: kura
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Setup Attic
+        uses: ryanccn/attic-action@v0.5.0
+        with:
+          endpoint: https://cache.ningwang.me/
+          cache: kura
+          token: ${{ secrets.ATTIC_TOKEN }}
       - name: Build ${{ matrix.package }}
         run: nix build --print-build-logs ".#packages.aarch64-darwin.${{ matrix.package }}"
