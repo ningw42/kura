@@ -22,6 +22,7 @@ on:
       - "flake.lock"
       - "garnix.yaml"
       - ".github/workflows/build-and-push-to-cachix.yml"
+      - ".github/scripts/attic-post-build-hook.sh"
 concurrency:
   group: build-and-cache-${{ github.ref }}
   cancel-in-progress: false
@@ -30,8 +31,7 @@ jobs:
     name: Discover packages from garnix.yaml
     runs-on: ubuntu-latest
     outputs:
-      linux: ${{ steps.matrix.outputs.linux }}
-      darwin: ${{ steps.matrix.outputs.darwin }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -79,22 +79,36 @@ jobs:
             esac
           done
 
-          linux_json=$(printf '%s\n' ${linux[@]+"${linux[@]}"} | jq -R . | jq -sc 'map(select(length>0))')
-          darwin_json=$(printf '%s\n' ${darwin[@]+"${darwin[@]}"} | jq -R . | jq -sc 'map(select(length>0))')
-          echo "linux=$linux_json"   >> "$GITHUB_OUTPUT"
-          echo "darwin=$darwin_json" >> "$GITHUB_OUTPUT"
-          echo "Linux:  $linux_json"
-          echo "Darwin: $darwin_json"
-  build-linux:
-    name: build ${{ matrix.package }} (x86_64-linux)
+          matrix_json=$(
+            {
+              for name in ${linux[@]+"${linux[@]}"}; do
+                jq -nc \
+                  --arg package "$name" \
+                  --arg system "x86_64-linux" \
+                  --arg runner "ubuntu-latest" \
+                  '{package: $package, system: $system, runner: $runner}'
+              done
+              for name in ${darwin[@]+"${darwin[@]}"}; do
+                jq -nc \
+                  --arg package "$name" \
+                  --arg system "aarch64-darwin" \
+                  --arg runner "macos-latest" \
+                  '{package: $package, system: $system, runner: $runner}'
+              done
+            } | jq -sc '.'
+          )
+          echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
+          echo "Matrix: $matrix_json"
+  build:
+    name: build ${{ matrix.package }} (${{ matrix.system }})
     needs: discover
-    if: needs.discover.outputs.linux != '[]'
-    runs-on: ubuntu-latest
+    if: needs.discover.outputs.matrix != '[]'
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       max-parallel: 6
       matrix:
-        package: ${{ fromJSON(needs.discover.outputs.linux) }}
+        include: ${{ fromJSON(needs.discover.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -103,19 +117,18 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      # Sets up `kura.cachix.org` as a substituter AND launches `cachix
-      # watch-store` in the background — any path that lands in /nix/store
-      # during this job is pushed to the cache automatically. That's why
-      # there's no explicit `cachix push` step.
+      # Sets up `kura.cachix.org` as a substituter and launches Cachix's
+      # daemon/post-build-hook mode, so only paths Nix builds locally are
+      # pushed. We compose our Attic collector with that same hook below.
       - name: Setup Cachix
         uses: cachix/cachix-action@v17
         with:
           name: kura
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       # Registers cache.ningwang.me/kura as a substituter; we disable its
-      # auto-push because the action pushes EVERY new store path including
-      # nixpkgs build deps already on cache.nixos.org. Our own push step
-      # below filters those out (matching Cachix's behavior).
+      # auto-push because attic-action scans the whole store, including paths
+      # substituted from cache.nixos.org. The collector below mirrors Cachix's
+      # post-build-hook behavior instead.
       - name: Setup Attic
         uses: ryanccn/attic-action@v0.5.0
         with:
@@ -123,145 +136,12 @@ jobs:
           cache: kura
           token: ${{ secrets.ATTIC_TOKEN }}
           skip-push: "true"
-      - name: Snapshot store before build (for Attic push diff)
-        run: nix path-info --all | sort -u > "$RUNNER_TEMP/store-before.txt"
+      - name: Setup Attic post-build hook collector
+        run: bash .github/scripts/attic-post-build-hook.sh install
       - name: Build ${{ matrix.package }}
-        run: nix build --print-build-logs ".#packages.x86_64-linux.${{ matrix.package }}"
-      - name: Push to Attic (skip paths already in cache.nixos.org)
-        # Filters out anything already on cache.nixos.org so Attic only stores
-        # what consumers can't get for free. Failures here become warnings,
-        # not job failures, so a transient Attic/B2 hiccup can't prevent
-        # Cachix's post-step push from running.
+        run: nix build --print-build-logs ".#packages.${{ matrix.system }}.${{ matrix.package }}"
+      - name: Push locally built paths to Attic
+        # Failures here become warnings, not job failures, so a transient
+        # Attic/B2 hiccup can't prevent Cachix's post-step push from running.
         continue-on-error: true
-        run: |
-          set -uo pipefail
-
-          # 1. New store paths added during this job (build + its substitutes).
-          nix path-info --all | sort -u > "$RUNNER_TEMP/store-after.txt"
-          comm -23 \
-            "$RUNNER_TEMP/store-after.txt" \
-            "$RUNNER_TEMP/store-before.txt" \
-            > "$RUNNER_TEMP/new-paths.txt"
-          new_count=$(wc -l < "$RUNNER_TEMP/new-paths.txt")
-          echo "::notice::Build added $new_count new store path(s)"
-
-          if [[ "$new_count" -eq 0 ]]; then
-            echo "Nothing to push."
-            exit 0
-          fi
-
-          # 2. Ask cache.nixos.org which of those it already has. With
-          # --json-format 2 the response is {info: {<basename>: <obj|null>,
-          # ...}, storeDir: "/nix/store", ...} — null value means upstream
-          # doesn't have the path. Re-prepend storeDir to match the full
-          # paths in new-paths.txt.
-          xargs nix path-info --json --json-format 2 --store https://cache.nixos.org \
-            < "$RUNNER_TEMP/new-paths.txt" 2>/dev/null \
-            | jq -r '.storeDir as $d | .info | to_entries | map(select(.value != null)) | .[].key | "\($d)/\(.)"' \
-            | sort -u \
-            > "$RUNNER_TEMP/upstream-has.txt" || true
-          upstream_count=$(wc -l < "$RUNNER_TEMP/upstream-has.txt")
-
-          # 3. Difference = what Attic actually needs to store.
-          comm -23 \
-            "$RUNNER_TEMP/new-paths.txt" \
-            "$RUNNER_TEMP/upstream-has.txt" \
-            > "$RUNNER_TEMP/to-push.txt"
-          push_count=$(wc -l < "$RUNNER_TEMP/to-push.txt")
-
-          echo "::notice::$new_count new, $upstream_count already on cache.nixos.org, $push_count to push to Attic"
-
-          echo "::group::Paths skipped (already on cache.nixos.org)"
-          cat "$RUNNER_TEMP/upstream-has.txt"
-          echo "::endgroup::"
-
-          echo "::group::Paths to push to Attic"
-          cat "$RUNNER_TEMP/to-push.txt"
-          echo "::endgroup::"
-
-          if [[ "$push_count" -eq 0 ]]; then
-            echo "Nothing to push after filter."
-            exit 0
-          fi
-
-          attic push --stdin kura < "$RUNNER_TEMP/to-push.txt"
-  build-darwin:
-    name: build ${{ matrix.package }} (aarch64-darwin)
-    needs: discover
-    if: needs.discover.outputs.darwin != '[]'
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        package: ${{ fromJSON(needs.discover.outputs.darwin) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31.10.6
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v17
-        with:
-          name: kura
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Setup Attic
-        uses: ryanccn/attic-action@v0.5.0
-        with:
-          endpoint: https://cache.ningwang.me/
-          cache: kura
-          token: ${{ secrets.ATTIC_TOKEN }}
-          skip-push: "true"
-      - name: Snapshot store before build (for Attic push diff)
-        run: nix path-info --all | sort -u > "$RUNNER_TEMP/store-before.txt"
-      - name: Build ${{ matrix.package }}
-        run: nix build --print-build-logs ".#packages.aarch64-darwin.${{ matrix.package }}"
-      - name: Push to Attic (skip paths already in cache.nixos.org)
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-
-          nix path-info --all | sort -u > "$RUNNER_TEMP/store-after.txt"
-          comm -23 \
-            "$RUNNER_TEMP/store-after.txt" \
-            "$RUNNER_TEMP/store-before.txt" \
-            > "$RUNNER_TEMP/new-paths.txt"
-          new_count=$(wc -l < "$RUNNER_TEMP/new-paths.txt")
-          echo "::notice::Build added $new_count new store path(s)"
-
-          if [[ "$new_count" -eq 0 ]]; then
-            echo "Nothing to push."
-            exit 0
-          fi
-
-          xargs nix path-info --json --store https://cache.nixos.org \
-            < "$RUNNER_TEMP/new-paths.txt" 2>/dev/null \
-            | jq -r 'keys[]' | sort -u \
-            > "$RUNNER_TEMP/upstream-has.txt" || true
-          upstream_count=$(wc -l < "$RUNNER_TEMP/upstream-has.txt")
-
-          comm -23 \
-            "$RUNNER_TEMP/new-paths.txt" \
-            "$RUNNER_TEMP/upstream-has.txt" \
-            > "$RUNNER_TEMP/to-push.txt"
-          push_count=$(wc -l < "$RUNNER_TEMP/to-push.txt")
-
-          echo "::notice::$new_count new, $upstream_count already on cache.nixos.org, $push_count to push to Attic"
-
-          echo "::group::Paths skipped (already on cache.nixos.org)"
-          cat "$RUNNER_TEMP/upstream-has.txt"
-          echo "::endgroup::"
-
-          echo "::group::Paths to push to Attic"
-          cat "$RUNNER_TEMP/to-push.txt"
-          echo "::endgroup::"
-
-          if [[ "$push_count" -eq 0 ]]; then
-            echo "Nothing to push after filter."
-            exit 0
-          fi
-
-          attic push --stdin kura < "$RUNNER_TEMP/to-push.txt"
+        run: bash .github/scripts/attic-post-build-hook.sh push kura
