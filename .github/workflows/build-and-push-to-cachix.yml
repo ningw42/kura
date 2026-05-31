@@ -22,7 +22,6 @@ on:
       - "flake.lock"
       - "garnix.yaml"
       - ".github/workflows/build-and-push-to-cachix.yml"
-      - ".github/scripts/attic-post-build-hook.sh"
 concurrency:
   group: build-and-cache-${{ github.ref }}
   cancel-in-progress: false
@@ -119,29 +118,21 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       # Sets up `kura.cachix.org` as a substituter and launches Cachix's
       # daemon/post-build-hook mode, so only paths Nix builds locally are
-      # pushed. We compose our Attic collector with that same hook below.
+      # pushed. Attic uses the same path-discovery mode below.
       - name: Setup Cachix
         uses: cachix/cachix-action@v17
         with:
           name: kura
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      # Registers cache.ningwang.me/kura as a substituter; we disable its
-      # auto-push because attic-action scans the whole store, including paths
-      # substituted from cache.nixos.org. The collector below mirrors Cachix's
-      # post-build-hook behavior instead.
+      # Registers cache.ningwang.me/kura as a substituter and discovers paths
+      # through the same post-build-hook mechanism Cachix uses, avoiding paths
+      # merely substituted from cache.nixos.org.
       - name: Setup Attic
-        uses: ryanccn/attic-action@v0.5.0
+        uses: ningw42/attic-action@feat/path-discovery-mode
         with:
           endpoint: https://cache.ningwang.me/
           cache: kura
           token: ${{ secrets.ATTIC_TOKEN }}
-          skip-push: "true"
-      - name: Setup Attic post-build hook collector
-        run: bash .github/scripts/attic-post-build-hook.sh install
+          path-discovery-mode: post-build-hook
       - name: Build ${{ matrix.package }}
         run: nix build --print-build-logs ".#packages.${{ matrix.system }}.${{ matrix.package }}"
-      - name: Push locally built paths to Attic
-        # Failures here become warnings, not job failures, so a transient
-        # Attic/B2 hiccup can't prevent Cachix's post-step push from running.
-        continue-on-error: true
-        run: bash .github/scripts/attic-post-build-hook.sh push kura
