@@ -150,12 +150,15 @@ jobs:
             exit 0
           fi
 
-          # 2. Ask cache.nixos.org which of those it already has, in one shot.
-          # nix path-info --store returns only the paths the store has; missing
-          # ones become a non-zero exit, which we tolerate via `|| true`.
-          xargs nix path-info --json --store https://cache.nixos.org \
+          # 2. Ask cache.nixos.org which of those it already has. With
+          # --json-format 2 the response is {info: {<basename>: <obj|null>,
+          # ...}, storeDir: "/nix/store", ...} — null value means upstream
+          # doesn't have the path. Re-prepend storeDir to match the full
+          # paths in new-paths.txt.
+          xargs nix path-info --json --json-format 2 --store https://cache.nixos.org \
             < "$RUNNER_TEMP/new-paths.txt" 2>/dev/null \
-            | jq -r 'keys[]' | sort -u \
+            | jq -r '.storeDir as $d | .info | to_entries | map(select(.value != null)) | .[].key | "\($d)/\(.)"' \
+            | sort -u \
             > "$RUNNER_TEMP/upstream-has.txt" || true
           upstream_count=$(wc -l < "$RUNNER_TEMP/upstream-has.txt")
 
