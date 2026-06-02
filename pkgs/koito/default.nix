@@ -12,13 +12,13 @@
 
 let
   pname = "koito";
-  version = "0.3.1";
+  version = "0.3.2";
 
   src = fetchFromGitHub {
     owner = "gabehf";
     repo = "koito";
     rev = "v${version}";
-    hash = "sha256-p+FzeFQ8zMOcQCwo2eyNfW9ne+fC/jjbx2WKRrxTFjc=";
+    hash = "sha256-68+Z4Alzu+4v/PxU1IOboqZkF1pO+y6gswuO+HPS7dk=";
   };
 
   # Frontend build: react-router (Vite) bundle in client/build/client.
