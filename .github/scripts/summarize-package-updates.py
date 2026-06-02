@@ -58,8 +58,8 @@ def collect_bumps() -> tuple[dict[str, tuple[str, str]], list[str]]:
 
 def build_title(names: list[str]) -> str:
     if len(names) <= 4:
-        return f"build(deps): update {', '.join(names)}"
-    return f"build(deps): update {len(names)} packages: {', '.join(names[:3])}, ..."
+        return f"build(pkgs): update {', '.join(names)}"
+    return f"build(pkgs): update {len(names)} packages: {', '.join(names[:3])}, ..."
 
 
 def build_body(bumps: dict[str, tuple[str, str]], others: list[str]) -> str:

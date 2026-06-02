@@ -43,8 +43,8 @@ def collect_changes(old_path: Path, new_path: Path) -> dict[str, tuple[str, str]
 
 def build_title(names: list[str]) -> str:
     if len(names) <= 4:
-        return f"chore(flake): bump {', '.join(names)}"
-    return f"chore(flake): bump {len(names)} inputs: {', '.join(names[:3])}, ..."
+        return f"build(flake): bump {', '.join(names)}"
+    return f"build(flake): bump {len(names)} inputs: {', '.join(names[:3])}, ..."
 
 
 def build_body(changes: dict[str, tuple[str, str]]) -> str:
