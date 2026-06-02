@@ -21,7 +21,7 @@ on:
       - "flake.nix"
       - "flake.lock"
       - "garnix.yaml"
-      - ".github/workflows/build-and-push-to-cachix.yml"
+      - ".github/workflows/build-and-push-to-caches.yml"
 concurrency:
   group: build-and-cache-${{ github.ref }}
   cancel-in-progress: false
