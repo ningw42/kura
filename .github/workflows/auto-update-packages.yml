@@ -1,0 +1,59 @@
+name: Auto-update packages
+# Scheduled run of `nix run .#update -- --skip-prompt`. Leaves the resulting
+# version/lockfile bumps as unstaged changes, summarizes them into a
+# conventional-commit title + markdown table, and opens (or updates) a single
+# PR at `auto-update/packages`. Each scheduled run force-pushes onto that
+# branch, so an open PR is always the current state of the world.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 2 * * *" # daily 02:15 UTC
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/auto-update-packages.yml"
+      - ".github/scripts/summarize-package-updates.py"
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: auto-update-packages
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      # The updater wrapper in flake.nix bridges
+      # ~/.config/nix/access-tokens.conf -> GITHUB_TOKEN, but only when the
+      # env var is unset. Setting it here passes through unchanged and gives
+      # downstream nix-update calls the 5000/hr authenticated rate limit.
+      - name: Run updater
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: nix run .#update -- --skip-prompt
+      # Some hooks (e.g. regen-npm-lockfile) regenerate files that don't
+      # match treefmt style; this keeps the PR diff clean.
+      - name: Format
+        run: nix fmt
+      - name: Summarize changes
+        id: changeset
+        run: ./.github/scripts/summarize-package-updates.py
+      - name: Create or update PR
+        if: steps.changeset.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-update/packages
+          delete-branch: true
+          commit-message: ${{ steps.changeset.outputs.title }}
+          title: ${{ steps.changeset.outputs.title }}
+          body: ${{ steps.changeset.outputs.body }}

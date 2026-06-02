@@ -1,0 +1,51 @@
+name: Auto-update flake inputs
+# Weekly `nix flake update`. Snapshots flake.lock before the bump so we can
+# diff each input's `locked.rev` and `lastModified`, then opens (or updates)
+# a single PR at `auto-update/flake-inputs` with a markdown table of the
+# changes. Kept separate from auto-update-packages so a churn-heavy nixpkgs
+# bump doesn't get reviewed in the same PR as user-facing package updates.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 3 * * 1" # weekly Monday 03:15 UTC
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/auto-update-flake-inputs.yml"
+      - ".github/scripts/summarize-flake-input-updates.py"
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: auto-update-flake-inputs
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Snapshot old flake.lock
+        run: cp flake.lock /tmp/flake.lock.old
+      - name: Update flake inputs
+        run: nix flake update
+      - name: Summarize changes
+        id: changeset
+        run: ./.github/scripts/summarize-flake-input-updates.py /tmp/flake.lock.old flake.lock
+      - name: Create or update PR
+        if: steps.changeset.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-update/flake-inputs
+          delete-branch: true
+          commit-message: ${{ steps.changeset.outputs.title }}
+          title: ${{ steps.changeset.outputs.title }}
+          body: ${{ steps.changeset.outputs.body }}
