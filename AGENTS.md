@@ -7,6 +7,7 @@ This is **kura** — a personal Nix flake holding packages that aren't in nixpkg
 ```
 flake.nix              # outputs: packages, overlays, devShells, checks, formatter, apps.update
 shell.nix              # runtime deps for the update runner (NOT for `nix develop`)
+matrix.nix             # CI build list + GHA matrix expansion (mirror of garnix.yaml; sole source of truth post-Garnix)
 pkgs/
   default.nix          # callPackage-wires every package into one attrset
   <pkg-name>/
@@ -18,9 +19,9 @@ pkgs/
     runner.nix         # wraps nixpkgs' maintainers/scripts/update.nix
 treefmt.nix            # nixfmt + yamlfmt config
 git-hooks.nix          # pre-commit hooks (treefmt, convco, etc.)
-garnix.yaml            # tells Garnix (and the GitHub Actions cachix pipeline) which attrs to build & cache
+garnix.yaml            # tells Garnix which attrs to build & cache (duplicated in matrix.nix for the GHA pipeline)
 .github/workflows/
-  build-and-cache.yml  # mirror pipeline: matrix-builds garnix.yaml attrs, pushes to kura.cachix.org
+  build-and-push-to-caches.yml  # mirror pipeline: expands matrix.nix into a build matrix, pushes to kura.cachix.org + self-hosted Attic
 ```
 
 ## Building a package
@@ -117,7 +118,7 @@ This skips the package entirely. The runner filters out null `updateScript`s bef
 - **Commit messages**: conventional commits, enforced by `convco` in pre-commit hooks. Common types here: `feat(<pkg>)`, `build(<pkg>)`, `refactor(...)`, `chore(...)`. Scope is usually the package name or a subsystem (`flake`, `update`, `gitignore`). See recent `git log --oneline` for the local idiom.
 - **No Co-Authored-By trailers.** The owner removes them when amending — don't add them.
 - **Formatting**: `nix fmt` runs treefmt (nixfmt + yamlfmt). Also runs via pre-commit. If pre-commit reformats during a commit, just re-stage and re-commit.
-- **Single-platform default**: only `x86_64-linux` is built by default. `aarch64-darwin` is supported for evaluation but only specific packages get built and cached (opt in via `garnix.yaml`; both Garnix and the GitHub Actions Cachix workflow read the same list).
+- **Single-platform default**: only `x86_64-linux` is built by default. `aarch64-darwin` is supported for evaluation but only specific packages get built and cached. To opt a Darwin package in, add `packages.aarch64-darwin.<name>` to both `garnix.yaml` (`builds.include`) and `matrix.nix` (`includes`) — Garnix and the GitHub Actions pipeline read them separately and the two lists are hand-kept in sync until Garnix is retired.
 - **Avoid creating new docs files** unless explicitly asked. This file (AGENTS.md) and README.md are the canonical entry points; CLAUDE.md is a one-line shim that includes this file.
 
 ## Pitfalls observed

@@ -47,7 +47,7 @@ See `pkgs/<name>/default.nix` for each derivation.
 }
 ```
 
-The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Garnix only caches Linux by default; Darwin works but builds from source unless added to `garnix.yaml`.
+The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Garnix only caches Linux by default; Darwin works but builds from source unless added to both `garnix.yaml` and `matrix.nix` (see [Caching](#caching) below).
 
 ## Updating packages
 
@@ -106,12 +106,12 @@ The first `nix develop` after cloning or after editing `git-hooks.nix` will inst
 
 ## Caching
 
-Two independent build-and-cache pipelines run off `master`, both driven by `garnix.yaml`:
+Two independent build-and-cache pipelines run off `master`:
 
 - **Garnix** (primary). Builds whatever `garnix.yaml` lists and serves it from `cache.garnix.io`.
-- **GitHub Actions → Cachix** (secondary). The `Build & push to Cachix` workflow at `.github/workflows/build-and-cache.yml` parses the same `garnix.yaml`, matrix-builds each package, and pushes the closure to `kura.cachix.org`. Runs on push to `master` and on manual dispatch.
+- **GitHub Actions → Cachix + Attic** (secondary). The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, matrix-builds each package, and pushes the closure to `kura.cachix.org` and a self-hosted Attic cache in parallel. Runs on push to `master` and on manual dispatch.
 
-To consume both caches, add either or both substituters to your Nix config:
+To consume both public caches, add either or both substituters to your Nix config:
 
 ```nix
 nix.settings = {
@@ -126,13 +126,13 @@ nix.settings = {
 };
 ```
 
-`garnix.yaml` controls what both pipelines build. To add Darwin builds for a specific package, add `packages.aarch64-darwin.<name>` under `builds.include` — both Garnix and the GitHub Actions workflow pick it up automatically.
+`garnix.yaml` controls the Garnix pipeline; `matrix.nix` controls the GitHub Actions pipeline. The two are hand-kept in sync today — when adding a Darwin build for a specific package, add `packages.aarch64-darwin.<name>` to both. Once Garnix is retired, `garnix.yaml` goes away and `matrix.nix` becomes the sole source of truth.
 
-### Setting up the Cachix pipeline (one-time)
+### Setting up the Cachix + Attic pipeline (one-time)
 
-1. Create the `kura` cache on <https://app.cachix.org>.
-2. Generate a write auth token and add it as the `CACHIX_AUTH_TOKEN` repo secret.
-3. Copy the cache's public key into the `trusted-public-keys` snippet above (and update this README).
+1. Create the `kura` cache on <https://app.cachix.org>, generate a write auth token, and add it as the `CACHIX_AUTH_TOKEN` repo secret.
+2. Mint a push+pull token on the Attic server scoped to `kura` and add it as the `ATTIC_TOKEN` repo secret.
+3. Copy the Cachix public key into the `trusted-public-keys` snippet above (and update this README).
 
 ## Repo layout
 
