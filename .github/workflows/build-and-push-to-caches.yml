@@ -85,7 +85,7 @@ jobs:
       # through the same post-build-hook mechanism Cachix uses, avoiding paths
       # merely substituted from cache.nixos.org.
       - name: Setup Attic
-        uses: ningw42/attic-action@feat/path-discovery-mode
+        uses: ningw42/attic-action@v0.6.0
         with:
           endpoint: ${{ secrets.ATTIC_ENDPOINT }}
           cache: ${{ secrets.ATTIC_CACHE }}
