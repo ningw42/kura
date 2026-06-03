@@ -44,58 +44,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Parse `builds.include` from garnix.yaml into one attr-path per line.
-          mapfile -t includes < <(yq -r '.builds.include[]' garnix.yaml)
-
-          # For each entry, expand `packages.<system>.*` wildcards by evaluating
-          # the flake; pass through specific `packages.<system>.<name>` entries
-          # as-is. Group by system so each platform gets its own matrix.
-          linux=()
-          darwin=()
-          for entry in "${includes[@]}"; do
-            case "$entry" in
-              packages.x86_64-linux.\*)
-                while IFS= read -r name; do
-                  linux+=("$name")
-                done < <(nix eval --json '.#packages.x86_64-linux' \
-                  --apply 'builtins.attrNames' | jq -r '.[]')
-                ;;
-              packages.x86_64-linux.*)
-                linux+=("${entry#packages.x86_64-linux.}")
-                ;;
-              packages.aarch64-darwin.\*)
-                while IFS= read -r name; do
-                  darwin+=("$name")
-                done < <(nix eval --json '.#packages.aarch64-darwin' \
-                  --apply 'builtins.attrNames' | jq -r '.[]')
-                ;;
-              packages.aarch64-darwin.*)
-                darwin+=("${entry#packages.aarch64-darwin.}")
-                ;;
-              *)
-                echo "::warning::ignoring unsupported garnix include: $entry"
-                ;;
-            esac
-          done
-
-          matrix_json=$(
-            {
-              for name in ${linux[@]+"${linux[@]}"}; do
-                jq -nc \
-                  --arg package "$name" \
-                  --arg system "x86_64-linux" \
-                  --arg runner "ubuntu-latest" \
-                  '{package: $package, system: $system, runner: $runner}'
-              done
-              for name in ${darwin[@]+"${darwin[@]}"}; do
-                jq -nc \
-                  --arg package "$name" \
-                  --arg system "aarch64-darwin" \
-                  --arg runner "macos-latest" \
-                  '{package: $package, system: $system, runner: $runner}'
-              done
-            } | jq -sc '.'
-          )
+          # matrix.nix holds the build list (a duplicate of garnix.yaml's
+          # builds.include — Garnix is on its way out) plus the
+          # wildcard-expansion and system→runner mapping, so the workflow
+          # itself is a single eval.
+          matrix_json=$(nix eval --json --impure --expr "
+            import ./matrix.nix {
+              self = builtins.getFlake (toString ./.);
+            }
+          ")
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "Matrix: $matrix_json"
   build:
