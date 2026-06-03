@@ -20,7 +20,7 @@ on:
       - "pkgs/**"
       - "flake.nix"
       - "flake.lock"
-      - "garnix.yaml"
+      - "matrix.nix"
       - ".github/workflows/build-and-push-to-caches.yml"
 concurrency:
   group: build-and-cache-${{ github.ref }}
