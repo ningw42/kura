@@ -43,14 +43,14 @@
 
 buildPythonPackage rec {
   pname = "litellm";
-  version = "1.87.0";
+  version = "1.87.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "BerriAI";
     repo = "litellm";
     tag = "v${version}";
-    hash = "sha256-UWNKUKnZb85Wm6dUOKEny/ExxKJtBSgTAuQ9CQjsaMg=";
+    hash = "sha256-agun2LmPc4VNRWZSCZ2TkiEQrhJtc1kqhgmj4vZ0Nsk=";
   };
 
   postPatch = ''
