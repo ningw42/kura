@@ -17,7 +17,9 @@ buildNpmPackage (finalAttrs: {
   src = fetchFromGitHub {
     owner = "Zephyruso";
     repo = "zashboard";
-    tag = "v${finalAttrs.version}";
+    # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
+    # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
+    rev = "v${finalAttrs.version}";
     hash = "sha256-XMhMYYYxdseHIAC1iJVgd5N0A0cb9zDR/nEugLpmalk=";
   };
 
@@ -57,7 +59,7 @@ buildNpmPackage (finalAttrs: {
   meta = {
     description = "Dashboard Using Clash API";
     homepage = "https://github.com/Zephyruso/zashboard";
-    changelog = "https://github.com/Zephyruso/zashboard/releases/tag/${finalAttrs.src.tag}";
+    changelog = "https://github.com/Zephyruso/zashboard/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
   };
 })

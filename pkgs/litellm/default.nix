@@ -49,7 +49,9 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "BerriAI";
     repo = "litellm";
-    tag = "v${version}";
+    # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
+    # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
+    rev = "v${version}";
     hash = "sha256-agun2LmPc4VNRWZSCZ2TkiEQrhJtc1kqhgmj4vZ0Nsk=";
   };
 
@@ -124,7 +126,7 @@ buildPythonPackage rec {
     description = "Use any LLM as a drop in replacement for gpt-3.5-turbo";
     mainProgram = "litellm";
     homepage = "https://github.com/BerriAI/litellm";
-    changelog = "https://github.com/BerriAI/litellm/releases/tag/${src.tag}";
+    changelog = "https://github.com/BerriAI/litellm/releases/tag/v${version}";
     license = lib.licenses.mit;
   };
 }

@@ -6,6 +6,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 
 ```
 brave-search-mcp-server
+byokey
 clash-premium
 fzf
 koito
@@ -13,13 +14,14 @@ lazygit
 litellm
 multi-scrobbler
 router-maestro
-sing-box-alpha (1.14 alpha)
+sing-box-alpha
 skim
-smartthings-soundbar (Home Assistant)
+smartthings-soundbar
 subsonic-now-playing-overlay
 telepush
 transmissionic
 trguing
+zashboard
 ```
 
 See `pkgs/<name>/default.nix` for each derivation.

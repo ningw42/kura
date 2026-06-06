@@ -20,7 +20,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
   src = fetchFromGitHub {
     owner = "AprilNEA";
     repo = "BYOKEY";
-    tag = "v${finalAttrs.version}";
+    # Use `rev` rather than `tag`: fetchFromGitHub normalizes `tag` to
+    # `src.rev = "refs/tags/v…"`, but nix-update's --use-github-releases
+    # fetcher reports the new rev as the bare tag name ("v…"). The mismatch
+    # makes nix-update think the rev changed on every run, forcing a full
+    # cargoDeps re-vendor even when the version is unchanged. Pinning `rev`
+    # to the bare tag keeps both sides equal, so hashes are only recomputed
+    # on an actual version bump.
+    rev = "v${finalAttrs.version}";
     hash = "sha256-w0kjdyTX7de0+HjJ160EYMwzoWYf+G6MFNTuj1kJNik=";
   };
 

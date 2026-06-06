@@ -24,7 +24,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
   src = fetchFromGitHub {
     owner = "skim-rs";
     repo = "skim";
-    tag = "v${finalAttrs.version}";
+    # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
+    # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
+    rev = "v${finalAttrs.version}";
     hash = "sha256-ek+h/MWxvUZKfUKSYL501+qqwFKHifopj2PicvnEr0Y=";
   };
 
@@ -90,7 +92,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
   meta = {
     description = "Command-line fuzzy finder written in Rust";
     homepage = "https://github.com/skim-rs/skim";
-    changelog = "https://github.com/skim-rs/skim/releases/tag/${finalAttrs.src.tag}";
+    changelog = "https://github.com/skim-rs/skim/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
     mainProgram = "sk";
   };
