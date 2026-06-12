@@ -35,7 +35,9 @@ nix flake check --no-build        # evaluates flake; does not build
 
 ## Overlay shape
 
-`overlays.default` is a **pointer overlay**: it hands consumers `self.packages.${system}` verbatim, so they get the exact garnix-cached store path regardless of their own nixpkgs pin. The full rationale (and tradeoffs) live in the comment on `overlays.default` in `flake.nix`.
+`overlays.default` exposes every kura package under a single `kura` attribute (`pkgs.kura.fzf`, `pkgs.kura.skim`, …) rather than merging them in at top level. It's a **pointer overlay**: the values are `self.packages.${system}` verbatim, so consumers get the exact cached store path regardless of their own nixpkgs pin.
+
+It nests under `kura` on purpose. Overriding a top-level name (e.g. `fzf`) would join the consumer's fixpoint, so every nixpkgs package that resolves that name through `callPackage` — `zoxide` bakes `fzf`'s store path into its binary, for one — would re-evaluate, change hash, and miss `cache.nixos.org`. Nesting keeps the rest of nixpkgs bit-identical and cached; consumers opt into a kura build by name. The full rationale (and tradeoffs) live in the comment on `overlays.default` in `flake.nix`.
 
 Consequence for package authors: kura packages can't compose through the consumer's `final`/`prev`. If one kura package needs another, wire it inside `pkgs/default.nix` directly (the `pkgs` arg there is kura's own pinned nixpkgs — see `pkgsFor` in `flake.nix`).
 

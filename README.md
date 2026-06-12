@@ -36,9 +36,9 @@ See `pkgs/<name>/default.nix` for each derivation.
     nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
       modules = [
         ({ pkgs, ... }: {
-          # Either as an overlay (every kura package becomes a top-level attr):
+          # Either as an overlay (packages land under pkgs.kura.*):
           nixpkgs.overlays = [ kura.overlays.default ];
-          environment.systemPackages = [ pkgs.skim pkgs.telepush ];
+          environment.systemPackages = [ pkgs.kura.skim pkgs.kura.telepush ];
 
           # Or pull packages directly:
           # environment.systemPackages = [ kura.packages.${pkgs.system}.skim ];

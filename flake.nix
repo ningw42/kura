@@ -49,25 +49,39 @@
       );
     in
     {
-      # Overlay consumers add to their own pkgs to get every kura package
-      # exposed as a top-level attribute (e.g. pkgs.brave-search-mcp-server).
+      # Overlay consumers add to their own pkgs. It exposes every kura package
+      # under a single `kura` attribute — `pkgs.kura.fzf`, `pkgs.kura.skim`, … —
+      # rather than merging them in at top level.
       #
-      # This is a "pointer overlay": it hands the consumer the pre-built
-      # store paths from `self.packages.${system}`, which were evaluated
-      # against kura's own pinned nixpkgs (see `pkgsFor` above). That keeps
-      # the derivation hash identical to what garnix built and cached, so
-      # consumers always hit the binary cache — even when their own nixpkgs
-      # pin differs from ours.
+      # Why nest instead of overriding top-level names: the overlay joins the
+      # consumer's package-set fixpoint, so a top-level `fzf = <kura fzf>`
+      # wouldn't merely shadow the name — every nixpkgs package that resolves
+      # `fzf` through `callPackage` (e.g. zoxide, which bakes fzf's store path
+      # into its own binary) would re-evaluate against kura's fzf, change hash,
+      # and miss cache.nixos.org, forcing a local rebuild. Nesting under `kura`
+      # leaves top-level names untouched, so the rest of nixpkgs stays
+      # bit-identical and cached; consumers opt into a kura build explicitly by
+      # reaching for `pkgs.kura.*`.
       #
-      # Tradeoffs vs. a `callPackage`-style overlay:
-      #   - Consumers can't override deps via `pkgs.foo.override { ... }` —
+      # This is also a "pointer overlay": the values are the pre-built store
+      # paths from `self.packages.${system}`, evaluated against kura's own
+      # pinned nixpkgs (see `pkgsFor` above). That keeps each derivation hash
+      # identical to what the kura caches built, so consumers hit the binary
+      # cache even when their own nixpkgs pin differs from ours.
+      #
+      # Tradeoffs:
+      #   - Kura packages don't transparently substitute for their nixpkgs
+      #     namesakes; reference them by `pkgs.kura.<name>`.
+      #   - Consumers can't override deps via `pkgs.kura.foo.override { ... }` —
       #     the path is sealed.
       #   - Kura packages can't compose with each other through the consumer's
       #     `final`/`prev`. Compose inside `pkgs/default.nix` instead.
-      #   - May duplicate libc / openssl / ... in the closure when consumer's
-      #     nixpkgs pin differs from ours. Acceptable for a personal package
-      #     set; the cache-hit win dominates.
-      overlays.default = _final: prev: self.packages.${prev.stdenv.hostPlatform.system} or { };
+      #   - May duplicate libc / openssl / ... in the closure when the
+      #     consumer's nixpkgs pin differs from ours. Acceptable for a personal
+      #     package set; the cache-hit win dominates.
+      overlays.default = _final: prev: {
+        kura = self.packages.${prev.stdenv.hostPlatform.system} or { };
+      };
 
       # Per-system packages. Exposed for both supportedSystems so consumers
       # on either platform can pull them. Garnix decides separately (in
