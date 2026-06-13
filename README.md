@@ -14,7 +14,7 @@ lazygit
 litellm
 multi-scrobbler
 router-maestro
-sing-box-alpha
+sing-box
 skim
 smartthings-soundbar
 subsonic-now-playing-overlay

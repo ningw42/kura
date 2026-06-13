@@ -7,7 +7,7 @@
 }:
 
 buildGoModule (finalAttrs: {
-  pname = "sing-box-alpha";
+  pname = "sing-box";
   version = "1.14.0-alpha.30";
 
   src = fetchFromGitHub {
@@ -65,7 +65,7 @@ buildGoModule (finalAttrs: {
   passthru.updateScript = [
     ../_update/run.sh
     "--attr"
-    "sing-box-alpha"
+    "sing-box"
     "--use-github-releases"
     "--version"
     "unstable"
