@@ -12,7 +12,7 @@ let
 in
 buildNpmPackage (finalAttrs: {
   pname = "zashboard";
-  version = "3.9.0";
+  version = "3.10.0";
 
   src = fetchFromGitHub {
     owner = "Zephyruso";
@@ -20,7 +20,7 @@ buildNpmPackage (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-QUu1HNGjxcT/oNO6XEiUpQ6TfMwLv9MQIsAtff+hYsY=";
+    hash = "sha256-cJPLILkEPWoNFPxwfFQHHVysQXu2HEOZQ5SYXm+7TIM=";
   };
 
   npmDeps = null;
@@ -28,7 +28,7 @@ buildNpmPackage (finalAttrs: {
     inherit (finalAttrs) pname version src;
     inherit pnpm;
     fetcherVersion = 3;
-    hash = "sha256-reYRJgLBxz+/J1wwPG4sO953R4xN0L6JInRJauseFc8=";
+    hash = "sha256-iIY/UaGFSrMIejGGEK0mUpa2jdhzDmUE6RQDOi/Uj/U=";
   };
 
   nativeBuildInputs = [ pnpm ];
