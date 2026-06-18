@@ -4,25 +4,28 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 
 ## What's in here
 
-```
-brave-search-mcp-server
-byokey
-clash-premium
-fzf
-koito
-lazygit
-litellm
-multi-scrobbler
-router-maestro
-sing-box
-skim
-smartthings-soundbar
-subsonic-now-playing-overlay
-telepush
-transmissionic
-trguing
-zashboard
-```
+✅ marks a platform the package is **prebuilt and cached** for; a blank cell builds from source. Every package is exposed for both systems regardless — the table only reflects what's cached (see [Caching](#caching)).
+
+| Package | x86_64-linux | aarch64-darwin |
+|---|:-:|:-:|
+| brave-search-mcp-server | ✅ | |
+| byokey | ✅ | |
+| clash-premium | ✅ | |
+| fzf | ✅ | ✅ |
+| koito | ✅ | |
+| lazygit | ✅ | ✅ |
+| litellm | ✅ | |
+| moor | ✅ | ✅ |
+| multi-scrobbler | ✅ | |
+| router-maestro | ✅ | |
+| sing-box | ✅ | |
+| skim | ✅ | ✅ |
+| smartthings-soundbar | ✅ | |
+| subsonic-now-playing-overlay | ✅ | |
+| telepush | ✅ | |
+| transmissionic | ✅ | |
+| trguing | ✅ | |
+| zashboard | ✅ | |
 
 See `pkgs/<name>/default.nix` for each derivation.
 
