@@ -34,6 +34,12 @@ buildNpmPackage (finalAttrs: {
   nativeBuildInputs = [ pnpm ];
   npmConfigHook = pnpmConfigHook;
 
+  # Build the sing-box-native variant (upstream's `build:singbox` script sets
+  # SINGBOX_NATIVE=true), which bundles the ConnectRPC/protobuf client, xterm,
+  # and qrcode tooling so the dashboard can drive sing-box's native API. The
+  # extra deps already live in the pnpm lockfile, so pnpmDeps is unaffected.
+  npmBuildScript = "build:singbox";
+
   postPatch = ''
     substituteInPlace vite.config.ts \
       --replace-fail "getGitCommitId()" '""'
