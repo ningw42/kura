@@ -45,17 +45,32 @@ sync_go_builder() {
   sed -i "s/\\b${old_builder}\\b/${new_builder}/g" "$file"
 }
 
-# regen-npm-lockfile:<owner>/<repo>:<tag-prefix>[:legacy-peer-deps]
+# regen-npm-lockfile:<owner>/<repo>:<tag-prefix>[:<flags>]
 # Clone the new tag, strip scripts, pin direct deps to lock-resolved versions,
 # regenerate package-lock.json with npm 10 (Node 22) so transitive deps have
 # `resolved` URLs, copy result to $KURA_PKG_DIR/package-lock.json.
 #
+# <flags> is an optional comma/colon-joined set, matched as substrings:
+#   - legacy-peer-deps : pass --legacy-peer-deps to npm.
+#   - omit-dev         : drop devDependencies before regenerating, yielding a
+#                        production-only lockfile. Use when the package has no
+#                        build/test step (so the dev toolchain is dead weight)
+#                        or when a dev-only transitive dep lacks `integrity`
+#                        (which breaks fetchNpmDeps). The matching default.nix
+#                        must also strip devDependencies in postPatch so
+#                        `npm ci` stays in sync. Example: pi-mcp-adapter.
+#
+# Tolerates upstream repos that ship no lockfile (the dep-pin step is then a
+# no-op and npm resolves fresh from the registry).
+#
 # Must run BEFORE nix-update so npmDepsHash computation reflects the patched
 # lockfile (postPatch in default.nix copies it into src).
 regen_npm_lockfile() {
-  local owner_repo="$1" tag_prefix="${2:-}" extra="${3:-}"
+  local owner_repo="$1" tag_prefix="${2:-}" flags="${3:-}"
   local legacy_flag=""
-  [[ "$extra" == "legacy-peer-deps" ]] && legacy_flag="--legacy-peer-deps"
+  [[ "$flags" == *legacy-peer-deps* ]] && legacy_flag="--legacy-peer-deps"
+  local omit_dev=""
+  [[ "$flags" == *omit-dev* ]] && omit_dev=1
 
   echo "[regen-npm-lockfile] Cloning ${owner_repo}@${tag_prefix}${KURA_VERSION}..."
   local work
@@ -65,11 +80,13 @@ regen_npm_lockfile() {
   git clone --depth 1 --branch "${tag_prefix}${KURA_VERSION}" \
     "https://github.com/${owner_repo}.git" "$work/source" 2>&1 | tail -1
   ( cd "$work/source"
-    node -e "
+    KURA_OMIT_DEV="$omit_dev" node -e "
       const fs = require('fs');
       const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
       delete pkg.scripts;
-      const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+      if (process.env.KURA_OMIT_DEV) delete pkg.devDependencies;
+      const hasLock = fs.existsSync('package-lock.json');
+      const lock = hasLock ? JSON.parse(fs.readFileSync('package-lock.json', 'utf8')) : { packages: {} };
       for (const section of ['dependencies', 'devDependencies']) {
         if (!pkg[section]) continue;
         for (const name of Object.keys(pkg[section])) {
