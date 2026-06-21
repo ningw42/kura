@@ -11,6 +11,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | brave-search-mcp-server | ✅ | |
 | byokey | ✅ | |
 | clash-premium | ✅ | |
+| copilot-proxy | ✅ | |
 | fzf | ✅ | ✅ |
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
