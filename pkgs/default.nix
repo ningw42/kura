@@ -8,6 +8,7 @@ in
   brave-search-mcp-server = callPackage ./brave-search-mcp-server { };
   byokey = callPackage ./byokey { };
   clash-premium = callPackage ./clash-premium { };
+  copilot-proxy = callPackage ./copilot-proxy { };
   fzf = callPackage ./fzf { };
   koito = callPackage ./koito { };
   lazygit = callPackage ./lazygit { };
