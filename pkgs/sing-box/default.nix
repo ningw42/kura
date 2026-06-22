@@ -8,7 +8,7 @@
 
 buildGoModule (finalAttrs: {
   pname = "sing-box";
-  version = "1.14.0-alpha.32";
+  version = "1.14.0-alpha.33";
 
   src = fetchFromGitHub {
     owner = "SagerNet";
@@ -16,10 +16,10 @@ buildGoModule (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-40Q1pOu3xyOZQcl6AMsy087+xQG42KF2/1/JpBTi0wc=";
+    hash = "sha256-2Qi/lZPG5IV4ttjkQMau29cPe9YcPV14TeE1Y41oPeI=";
   };
 
-  vendorHash = "sha256-XwmTZppw3WZoIlrK27GwyJMp86dUFdNNhX/q631xTUg=";
+  vendorHash = "sha256-c99as3LIzPR/IZel76rEOJ/kHmxE0fwJV84eSPG98Ls=";
 
   tags = [
     "with_gvisor"
