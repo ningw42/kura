@@ -35,6 +35,7 @@ python3Packages.buildPythonApplication rec {
     plotext
     aiosqlite
     python-dotenv
+    prometheus-client
     tomlkit
     rapidfuzz
   ];
