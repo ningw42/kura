@@ -34,11 +34,11 @@ buildNpmPackage (finalAttrs: {
   nativeBuildInputs = [ pnpm ];
   npmConfigHook = pnpmConfigHook;
 
-  # Build the sing-box-native variant (upstream's `build:singbox` script sets
-  # SINGBOX_NATIVE=true), which bundles the ConnectRPC/protobuf client, xterm,
-  # and qrcode tooling so the dashboard can drive sing-box's native API. The
-  # extra deps already live in the pnpm lockfile, so pnpmDeps is unaffected.
-  npmBuildScript = "build:singbox";
+  # Default `build` (vite build). As of v3.11.0 sing-box's native gRPC API
+  # support is always bundled (lazily loaded so the Clash backend doesn't pay
+  # for it) — the dedicated `build:singbox` script was removed when upstream
+  # folded the variant into the default build.
+  npmBuildScript = "build";
 
   postPatch = ''
     substituteInPlace vite.config.ts \
