@@ -6,17 +6,17 @@
 # than silently dropping rows, so a typo fails CI instead of skipping a
 # package.
 #
-# `includes` below is a hand-maintained duplicate of `builds.include` in
-# `garnix.yaml`. Garnix is on a deprecation path; once it's gone, garnix.yaml
-# leaves the repo and this file becomes the sole source of truth. Until then,
-# edit both when adding a package to the cache pipeline.
+# `includes` below is the build list — the sole source of truth for what the
+# cache pipeline builds per platform. Add a package's attr path here to opt it
+# into the cache.
 {
   self,
 }:
 let
   lib = self.inputs.nixpkgs.lib;
 
-  # Mirror of garnix.yaml's builds.include. Keep in sync.
+  # The build list. Each entry is a `packages.<system>.<name>` attr path;
+  # `<name>` may be `*` to build every package for that system.
   includes = [
     "packages.x86_64-linux.*"
     "packages.aarch64-darwin.fzf"

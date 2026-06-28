@@ -1,9 +1,8 @@
 name: Build & Push to Caches
-# Mirror of the Garnix pipeline that pushes to two secondary caches in
-# parallel: Cachix (kura.cachix.org) and our self-hosted Attic at
-# cache.ningwang.me/kura. Keeps `garnix.yaml` as the source of truth for what
-# to build per platform: the discovery job parses `builds.include` and fans
-# the matrix out from there.
+# Builds every package and pushes the closures to two caches in parallel:
+# Cachix (kura.cachix.org) and our self-hosted Attic at cache.ningwang.me/kura.
+# `matrix.nix` is the source of truth for what to build per platform: the
+# discovery job expands its build list and fans the matrix out from there.
 #
 # Setup required (one-time):
 #   1. Create the `kura` cache on https://app.cachix.org, generate an auth
@@ -27,7 +26,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   discover:
-    name: Discover packages from garnix.yaml
+    name: Discover packages from matrix.nix
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -39,15 +38,13 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build matrix from garnix.yaml
+      - name: Build matrix from matrix.nix
         id: matrix
         run: |
           set -euo pipefail
 
-          # matrix.nix holds the build list (a duplicate of garnix.yaml's
-          # builds.include — Garnix is on its way out) plus the
-          # wildcard-expansion and system→runner mapping, so the workflow
-          # itself is a single eval.
+          # matrix.nix holds the build list plus the wildcard-expansion and
+          # system→runner mapping, so the workflow itself is a single eval.
           matrix_json=$(nix eval --json --impure --expr "
             import ./matrix.nix {
               self = builtins.getFlake (toString ./.);

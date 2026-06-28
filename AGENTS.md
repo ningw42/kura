@@ -7,7 +7,7 @@ This is **kura** — a personal Nix flake holding packages that aren't in nixpkg
 ```
 flake.nix              # outputs: packages, overlays, devShells, checks, formatter, apps.update
 shell.nix              # runtime deps for the update runner (NOT for `nix develop`)
-matrix.nix             # CI build list + GHA matrix expansion (mirror of garnix.yaml; sole source of truth post-Garnix)
+matrix.nix             # CI build list + GHA matrix expansion (sole source of truth for what to build & cache)
 pkgs/
   default.nix          # callPackage-wires every package into one attrset
   <pkg-name>/
@@ -19,9 +19,8 @@ pkgs/
     runner.nix         # wraps nixpkgs' maintainers/scripts/update.nix
 treefmt.nix            # nixfmt + yamlfmt config
 git-hooks.nix          # pre-commit hooks (treefmt, convco, etc.)
-garnix.yaml            # tells Garnix which attrs to build & cache (duplicated in matrix.nix for the GHA pipeline)
 .github/workflows/
-  build-and-push-to-caches.yml  # mirror pipeline: expands matrix.nix into a build matrix, pushes to kura.cachix.org + self-hosted Attic
+  build-and-push-to-caches.yml  # cache pipeline: expands matrix.nix into a build matrix, pushes to kura.cachix.org + self-hosted Attic
 ```
 
 ## Building a package
@@ -31,7 +30,7 @@ nix build .#<pkg-name>            # builds the derivation
 nix flake check --no-build        # evaluates flake; does not build
 ```
 
-`packages.<system>` is exposed for `x86_64-linux` and `aarch64-darwin`. Garnix only builds the Linux set; Darwin attrs evaluate but aren't cached unless added to `garnix.yaml`.
+`packages.<system>` is exposed for `x86_64-linux` and `aarch64-darwin`. Only the Linux set is built & cached by default; Darwin attrs evaluate but aren't cached unless added to `matrix.nix`.
 
 ## Overlay shape
 
@@ -120,7 +119,7 @@ This skips the package entirely. The runner filters out null `updateScript`s bef
 - **Commit messages**: conventional commits, enforced by `convco` in pre-commit hooks. Common types here: `feat(<pkg>)`, `build(<pkg>)`, `refactor(...)`, `chore(...)`. Scope is usually the package name or a subsystem (`flake`, `update`, `gitignore`). See recent `git log --oneline` for the local idiom.
 - **No Co-Authored-By trailers.** The owner removes them when amending — don't add them.
 - **Formatting**: `nix fmt` runs treefmt (nixfmt + yamlfmt). Also runs via pre-commit. If pre-commit reformats during a commit, just re-stage and re-commit.
-- **Single-platform default**: only `x86_64-linux` is built by default. `aarch64-darwin` is supported for evaluation but only specific packages get built and cached. To opt a Darwin package in, add `packages.aarch64-darwin.<name>` to both `garnix.yaml` (`builds.include`) and `matrix.nix` (`includes`) — Garnix and the GitHub Actions pipeline read them separately and the two lists are hand-kept in sync until Garnix is retired.
+- **Single-platform default**: only `x86_64-linux` is built by default. `aarch64-darwin` is supported for evaluation but only specific packages get built and cached. To opt a Darwin package in, add `packages.aarch64-darwin.<name>` to `matrix.nix` (`includes`), which the GitHub Actions cache pipeline reads.
 - **Source pinning — `rev` vs `tag`**: pin `fetchFromGitHub` sources with `rev = "v${version}"`, **not** `tag = "v${version}"`, even though `tag` is the more modern/declarative nixpkgs idiom. Reason: `fetchFromGitHub` normalizes `tag` to `src.rev = "refs/tags/v…"`, but `nix-update` discovers the upstream version as the *bare* tag (`v…`). The two never compare equal, so nix-update concludes the rev "changed" on **every** run and re-fetches all dependency hashes (`cargoHash`/`vendorHash`/`npmDeps`/`pnpmDeps`/…) even when the version is unchanged — turning a no-op update into a full re-vendor (≈10 min for `byokey`'s cargo tree). Using `rev` keeps both sides equal, so hashes are only recomputed on a real version bump. Consequences: with `rev`, `src.tag` is `null` and `src.rev` is the bare tag — don't reference `src.tag` in `meta.changelog`/`ldflags` (use `"v${version}"`). The source `hash` is content-addressed and identical either way, so switching never changes the fetched output. This is not fixable by bumping `nix-update`: as of upstream master the comparison is still `old_rev_tag = package.rev or package.tag` (prefers the `refs/tags/` rev), so the only ways to keep `tag` would be patching nix-update (flip it to `package.tag or package.rev`) or a custom version-equality pre-check — both more machinery than just using `rev`.
 - **Avoid creating new docs files** unless explicitly asked. This file (AGENTS.md) and README.md are the canonical entry points; CLAUDE.md is a one-line shim that includes this file.
 

@@ -1,5 +1,5 @@
 {
-  description = "Ning's personal Nix package collection (kura). Cached via Garnix.";
+  description = "Ning's personal Nix package collection (kura). Cached via Cachix and Attic.";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -29,7 +29,7 @@
       forSupportedSystems = nixpkgs.lib.genAttrs supportedSystems;
       # Plain nixpkgs per system. Used to build every output (packages,
       # checks, devShells, ...) against kura's *own* pinned nixpkgs, so the
-      # garnix-cached store paths exposed via `overlays.default` stay
+      # cached store paths exposed via `overlays.default` stay
       # consumer-agnostic.
       pkgsFor = forSupportedSystems (system: import nixpkgs { inherit system; });
 
@@ -84,8 +84,8 @@
       };
 
       # Per-system packages. Exposed for both supportedSystems so consumers
-      # on either platform can pull them. Garnix decides separately (in
-      # garnix.yaml) which of these to actually build and cache.
+      # on either platform can pull them. The cache pipeline decides separately
+      # (in matrix.nix) which of these to actually build and cache.
       packages = forSupportedSystems (
         system:
         let

@@ -1,6 +1,6 @@
 # kura
 
-A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs version lags behind upstream. Cached on [Garnix](https://garnix.io/) and [Cachix](https://www.cachix.org/) so consumers don't have to rebuild from source.
+A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs version lags behind upstream. Cached on [Cachix](https://www.cachix.org/) so consumers don't have to rebuild from source.
 
 ## What's in here
 
@@ -54,7 +54,7 @@ See `pkgs/<name>/default.nix` for each derivation.
 }
 ```
 
-The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Garnix only caches Linux by default; Darwin works but builds from source unless added to both `garnix.yaml` and `matrix.nix` (see [Caching](#caching) below).
+The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Only Linux is cached by default; Darwin works but builds from source unless added to `matrix.nix` (see [Caching](#caching) below).
 
 ## Updating packages
 
@@ -113,27 +113,24 @@ The first `nix develop` after cloning or after editing `git-hooks.nix` will inst
 
 ## Caching
 
-Two independent build-and-cache pipelines run off `master`:
+A GitHub Actions pipeline builds and caches off `master`:
 
-- **Garnix** (primary). Builds whatever `garnix.yaml` lists and serves it from `cache.garnix.io`.
-- **GitHub Actions → Cachix + Attic** (secondary). The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, matrix-builds each package, and pushes the closure to `kura.cachix.org` and a self-hosted Attic cache in parallel. Runs on push to `master` and on manual dispatch.
+- **GitHub Actions → Cachix + Attic.** The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, matrix-builds each package, and pushes the closure to `kura.cachix.org` and a self-hosted Attic cache in parallel. Runs on push to `master` and on manual dispatch.
 
-To consume both public caches, add either or both substituters to your Nix config:
+To consume the public cache, add the substituter to your Nix config:
 
 ```nix
 nix.settings = {
   substituters = [
-    "https://cache.garnix.io"
     "https://kura.cachix.org"
   ];
   trusted-public-keys = [
-    "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
     "kura.cachix.org-1:nOM/8zHJpVt4prp0lyU3LQNsKPmo37BFiOw8q+Gm8TQ="
   ];
 };
 ```
 
-`garnix.yaml` controls the Garnix pipeline; `matrix.nix` controls the GitHub Actions pipeline. The two are hand-kept in sync today — when adding a Darwin build for a specific package, add `packages.aarch64-darwin.<name>` to both. Once Garnix is retired, `garnix.yaml` goes away and `matrix.nix` becomes the sole source of truth.
+`matrix.nix` is the source of truth for what the pipeline builds per platform. To add a Darwin build for a specific package, add `packages.aarch64-darwin.<name>` to its `includes` list.
 
 ### Setting up the Cachix + Attic pipeline (one-time)
 
