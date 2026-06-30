@@ -12,7 +12,7 @@ let
 in
 buildNpmPackage (finalAttrs: {
   pname = "zashboard";
-  version = "3.11.0";
+  version = "3.12.0";
 
   src = fetchFromGitHub {
     owner = "Zephyruso";
@@ -20,7 +20,7 @@ buildNpmPackage (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-awTHTpuBwJQ9tb3rqEw6s9pMBLbkZ1Nx8JLQW3P8o4A=";
+    hash = "sha256-bNkp3FQYM8gdkszPgbN3Ovypg0Uj7Ny0WNkfC82xark=";
   };
 
   npmDeps = null;
@@ -34,7 +34,7 @@ buildNpmPackage (finalAttrs: {
   nativeBuildInputs = [ pnpm ];
   npmConfigHook = pnpmConfigHook;
 
-  # Default `build` (vite build). As of v3.11.0 sing-box's native gRPC API
+  # Default `build` (vite build). As of v3.12.0 sing-box's native gRPC API
   # support is always bundled (lazily loaded so the Clash backend doesn't pay
   # for it) — the dedicated `build:singbox` script was removed when upstream
   # folded the variant into the default build.
