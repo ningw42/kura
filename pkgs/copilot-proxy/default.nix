@@ -6,21 +6,28 @@
   makeWrapper,
 }:
 
-buildNpmPackage rec {
+buildNpmPackage {
   pname = "copilot-proxy";
-  version = "0.7.15";
+  # Fork of Jer-y/copilot-proxy tracking the fix/stabilize-responses-item-ids
+  # branch (3 commits ahead of v0.7.15, no tag). The `-unstable-<date>` suffix
+  # is the commit date of the pinned rev below.
+  version = "0.7.15-unstable-2026-07-03";
 
   src = fetchFromGitHub {
-    owner = "Jer-y";
+    owner = "ningw42";
     repo = "copilot-proxy";
-    rev = "v${version}";
-    hash = "sha256-T4kq8u+nomodP4OAd3NYh4dCszk8EXWl0FfzNhi24Cw=";
+    # Branch HEAD, not a tag: pin the exact commit. Bump rev + hash + the
+    # `-unstable-` date together when new commits land on the branch.
+    rev = "5a3dbeb1715ed9e24642a2d53167f8d6d982a5d8";
+    hash = "sha256-4QEG99d8i+vWEV8CjnJcQwxZHjo2+77ULWoUBo7xLTg=";
   };
 
   # Upstream is a Bun project: it ships only `bun.lock`, no npm lockfile. We
   # vendor one regenerated with npm 10 (so transitive deps carry
   # `resolved`/`integrity`, which fetchNpmDeps requires) and drop it in here.
-  # See pkgs/_update/hooks.sh (regen-npm-lockfile) for the matching update path.
+  # The updater is disabled (see passthru.updateScript below), so regenerate
+  # this by hand when deps change — pkgs/_update/hooks.sh (regen-npm-lockfile)
+  # is the recipe.
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
   '';
@@ -62,19 +69,17 @@ buildNpmPackage rec {
 
   meta = {
     description = "Turn GitHub Copilot into an OpenAI/Anthropic-compatible server with Claude Code and Codex support";
-    homepage = "https://github.com/Jer-y/copilot-proxy";
-    changelog = "https://github.com/Jer-y/copilot-proxy/releases/tag/v${version}";
+    homepage = "https://github.com/ningw42/copilot-proxy";
+    changelog = "https://github.com/ningw42/copilot-proxy/commit/5a3dbeb1715ed9e24642a2d53167f8d6d982a5d8";
     license = lib.licenses.mit;
     mainProgram = "copilot-proxy";
     platforms = lib.platforms.unix;
   };
 
-  passthru.updateScript = [
-    ../_update/run.sh
-    "--attr"
-    "copilot-proxy"
-    "--use-github-releases"
-    "--pre-hook"
-    "regen-npm-lockfile:Jer-y/copilot-proxy:v"
-  ];
+  # Disabled: this pins a personal fork's feature-branch HEAD, not a release.
+  # The shared driver discovers versions from GitHub releases and its
+  # regen-npm-lockfile hook clones a tag — neither fits a branch snapshot. Bump
+  # src.rev/hash + the version date by hand (regen package-lock.json via the
+  # regen-npm-lockfile recipe if deps change).
+  passthru.updateScript = null;
 }
