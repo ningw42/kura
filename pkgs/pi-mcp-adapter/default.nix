@@ -8,13 +8,13 @@
 
 buildNpmPackage rec {
   pname = "pi-mcp-adapter";
-  version = "2.10.0";
+  version = "2.11.0";
 
   src = fetchFromGitHub {
     owner = "nicobailon";
     repo = "pi-mcp-adapter";
     rev = "v${version}";
-    hash = "sha256-MrorLzxbn3O81B47Nd0d0xnd0xhXgMdobnXgD0axldE=";
+    hash = "sha256-JjYS9tPSoVuubdmHTqTNNYfDJOc9CBPvVbIxvdJWi7M=";
   };
 
   # Upstream ships no lockfile, so we vendor a production-only one regenerated
@@ -36,7 +36,7 @@ buildNpmPackage rec {
     fi
   '';
 
-  npmDepsHash = "sha256-E6Acu/xHCJNlTaU0FL9DuyoAGXfz7S9iNEjcC3w/PHI=";
+  npmDepsHash = "sha256-Mn2ug9W940FgluNyajkF130W3pWrbmKnyLkH7ND8jwU=";
 
   # The package has no build step: it ships its TypeScript sources directly and
   # Pi loads them at runtime. Only cli.js (the `pi-mcp-adapter init` helper) is
