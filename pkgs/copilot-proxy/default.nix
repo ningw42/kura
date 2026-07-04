@@ -11,15 +11,15 @@ buildNpmPackage {
   # Fork of Jer-y/copilot-proxy tracking the fix/stabilize-responses-item-ids
   # branch (3 commits ahead of v0.7.15, no tag). The `-unstable-<date>` suffix
   # is the commit date of the pinned rev below.
-  version = "0.7.15-unstable-2026-07-03";
+  version = "0.7.15-unstable-2026-07-04";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "copilot-proxy";
     # Branch HEAD, not a tag: pin the exact commit. Bump rev + hash + the
     # `-unstable-` date together when new commits land on the branch.
-    rev = "5a3dbeb1715ed9e24642a2d53167f8d6d982a5d8";
-    hash = "sha256-4QEG99d8i+vWEV8CjnJcQwxZHjo2+77ULWoUBo7xLTg=";
+    rev = "c8b8842345e780b6f61e2ad5093d349d6ca661e9";
+    hash = "sha256-q+fRtlNysl0wCEuCTkhGIM3NskGzB5Wez+O40KBoVdg=";
   };
 
   # Upstream is a Bun project: it ships only `bun.lock`, no npm lockfile. We
@@ -70,7 +70,7 @@ buildNpmPackage {
   meta = {
     description = "Turn GitHub Copilot into an OpenAI/Anthropic-compatible server with Claude Code and Codex support";
     homepage = "https://github.com/ningw42/copilot-proxy";
-    changelog = "https://github.com/ningw42/copilot-proxy/commit/5a3dbeb1715ed9e24642a2d53167f8d6d982a5d8";
+    changelog = "https://github.com/ningw42/copilot-proxy/commit/c8b8842345e780b6f61e2ad5093d349d6ca661e9";
     license = lib.licenses.mit;
     mainProgram = "copilot-proxy";
     platforms = lib.platforms.unix;
