@@ -43,7 +43,7 @@
 
 buildPythonPackage rec {
   pname = "litellm";
-  version = "1.90.3";
+  version = "1.91.0";
   pyproject = true;
 
   src = fetchFromGitHub {
@@ -52,7 +52,7 @@ buildPythonPackage rec {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${version}";
-    hash = "sha256-Sk1S3tJYkCWadmSiX+OZEQEAHFQv+KiX2f2TyM2ND3U=";
+    hash = "sha256-n+Mwj+/NE4jnAfD+AmgaQnr9DihZMflGgmVDq4iLZN4=";
   };
 
   postPatch = ''
