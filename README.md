@@ -9,7 +9,6 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | Package | x86_64-linux | aarch64-darwin |
 |---|:-:|:-:|
 | brave-search-mcp-server | ✅ | |
-| byokey | ✅ | |
 | clash-premium | ✅ | |
 | copilot-proxy | ✅ | |
 | fzf | ✅ | ✅ |
