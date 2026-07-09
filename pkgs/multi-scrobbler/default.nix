@@ -26,7 +26,16 @@ buildNpmPackage rec {
 
   npmDepsHash = "sha256-hN3Vylbl4lxQCXMkpCLfgoz7fy5xb6bnZlS03bZYWFM=";
 
-  npmFlags = [ "--legacy-peer-deps" ];
+  # `--ignore-scripts` blocks dependency lifecycle scripts during `npm ci`.
+  # As of 0.14.2 the `storybook-addon-remix-react-router` devDependency has a
+  # `preinstall` of `npx only-allow pnpm`, which reaches the network (fetching
+  # `only-allow`) and fails in the sandbox. The frontend build (`vite build`)
+  # needs no install scripts — esbuild/rollup resolve prebuilt binaries from
+  # their vendored `@esbuild/linux-x64`-style platform packages.
+  npmFlags = [
+    "--legacy-peer-deps"
+    "--ignore-scripts"
+  ];
 
   # Skip the default build which tries to build docs
   dontNpmBuild = true;
