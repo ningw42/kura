@@ -42,6 +42,19 @@ buildNpmPackage rec {
 
   nativeBuildInputs = [ makeWrapper ];
 
+  # multi-scrobbler ships fixes to several of its dependencies as patch-package
+  # patches (patches/*.patch), normally applied by its `postinstall:
+  # patch-package`. Since `npm ci` runs with `--ignore-scripts` (above), apply
+  # them explicitly here — after node_modules is populated, before it's copied
+  # into $out. The sqlite-up patch is load-bearing: it makes Migrator.apply()
+  # forward the migration context to each migration's `up(db, ctx)`, without
+  # which app migrations (e.g. 001_lifecycleLoc) crash dereferencing an
+  # undefined `ctx`. patch-package (a devDependency, present in node_modules)
+  # skips the non-`.patch` files and applies each patch offline.
+  preBuild = ''
+    node_modules/.bin/patch-package
+  '';
+
   buildPhase = ''
     runHook preBuild
     # Only build the frontend - backend runs via tsx
