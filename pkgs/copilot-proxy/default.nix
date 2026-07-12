@@ -34,12 +34,14 @@ buildNpmPackage {
     # changelogithub is only used by the upstream release script. Excluding it
     # keeps release tooling out of the build closure while preserving the
     # security overrides from upstream package.json.
-    node -e '
-      const fs = require("fs");
-      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-      delete pkg.devDependencies.changelogithub;
-      fs.writeFileSync("package.json", JSON.stringify(pkg));
-    '
+    if command -v node >/dev/null; then
+      node -e '
+        const fs = require("fs");
+        const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+        delete pkg.devDependencies.changelogithub;
+        fs.writeFileSync("package.json", JSON.stringify(pkg));
+      '
+    fi
   '';
 
   npmDepsHash = "sha256-54NgnVKMylwOabK8eO9n+sJ73PdUE/i2pOH+CocG5Ok=";
