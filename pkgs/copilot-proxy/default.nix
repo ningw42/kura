@@ -9,17 +9,17 @@
 buildNpmPackage {
   pname = "copilot-proxy";
   # Fork of Jer-y/copilot-proxy tracking the feat/codex-auto-review-alias
-  # branch (2 commits ahead of v0.7.16, no tag). The `-unstable-<date>` suffix
+  # branch (4 commits ahead of v0.7.16, no tag). The `-unstable-<date>` suffix
   # is the commit date of the pinned rev below.
-  version = "0.7.16-unstable-2026-07-10";
+  version = "0.7.16-unstable-2026-07-12";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "copilot-proxy";
     # Branch HEAD, not a tag: pin the exact commit. Bump rev + hash + the
     # `-unstable-` date together when new commits land on the branch.
-    rev = "b23f6a6b842eab816b50a0a3cee1affd6c3e4e8d";
-    hash = "sha256-VFlsg+0Dy08lq64rdnb6naYcWBdYomoV9UErZk5R7Rk=";
+    rev = "dd704d4c27612570d42831ad1f5104224f749335";
+    hash = "sha256-x6R/N1a3YYCziUPu+0Yr2USV99wVx5ln6r8jVNC2dt0=";
   };
 
   # Upstream is a Bun project: it ships only `bun.lock`, no npm lockfile. We
@@ -30,6 +30,16 @@ buildNpmPackage {
   # is the recipe.
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
+
+    # changelogithub is only used by the upstream release script. Excluding it
+    # keeps release tooling out of the build closure while preserving the
+    # security overrides from upstream package.json.
+    node -e '
+      const fs = require("fs");
+      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+      delete pkg.devDependencies.changelogithub;
+      fs.writeFileSync("package.json", JSON.stringify(pkg));
+    '
   '';
 
   npmDepsHash = "sha256-54NgnVKMylwOabK8eO9n+sJ73PdUE/i2pOH+CocG5Ok=";
@@ -70,7 +80,7 @@ buildNpmPackage {
   meta = {
     description = "Turn GitHub Copilot into an OpenAI/Anthropic-compatible server with Claude Code and Codex support";
     homepage = "https://github.com/ningw42/copilot-proxy";
-    changelog = "https://github.com/ningw42/copilot-proxy/commit/b23f6a6b842eab816b50a0a3cee1affd6c3e4e8d";
+    changelog = "https://github.com/ningw42/copilot-proxy/commit/dd704d4c27612570d42831ad1f5104224f749335";
     license = lib.licenses.mit;
     mainProgram = "copilot-proxy";
     platforms = lib.platforms.unix;
