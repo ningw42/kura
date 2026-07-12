@@ -3,7 +3,7 @@
   buildPythonPackage,
   fetchFromGitHub,
   nix-update-script,
-  uv-build,
+  rustPlatform,
   aiohttp,
   click,
   fastuuid,
@@ -55,12 +55,16 @@ buildPythonPackage rec {
     hash = "sha256-me1U+mh9zdUp8zzLLARzP0CuLlo+wxJ5M88dtXo95WY=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace-fail 'requires = ["uv_build==0.11.8"]' 'requires = ["uv_build>=0.10.0"]'
-  '';
+  cargoRoot = "litellm-rust";
 
-  build-system = [ uv-build ];
+  cargoDeps = rustPlatform.importCargoLock {
+    lockFile = "${src}/litellm-rust/Cargo.lock";
+  };
+
+  build-system = with rustPlatform; [
+    cargoSetupHook
+    maturinBuildHook
+  ];
 
   dependencies = [
     aiohttp
