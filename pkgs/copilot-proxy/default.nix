@@ -9,17 +9,17 @@
 buildNpmPackage {
   pname = "copilot-proxy";
   # Fork of Jer-y/copilot-proxy tracking the feat/codex-auto-review-alias
-  # branch (4 commits ahead of v0.7.16, no tag). The `-unstable-<date>` suffix
+  # branch (2 commits ahead of v0.8.0, no tag). The `-unstable-<date>` suffix
   # is the commit date of the pinned rev below.
-  version = "0.7.16-unstable-2026-07-12";
+  version = "0.8.0-unstable-2026-07-13";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "copilot-proxy";
     # Branch HEAD, not a tag: pin the exact commit. Bump rev + hash + the
     # `-unstable-` date together when new commits land on the branch.
-    rev = "dd704d4c27612570d42831ad1f5104224f749335";
-    hash = "sha256-x6R/N1a3YYCziUPu+0Yr2USV99wVx5ln6r8jVNC2dt0=";
+    rev = "0ccf530b189b5a093faecbd26f1ed41cd9be3cda";
+    hash = "sha256-R72UXSG0jEUe9rnBB0eZNCXpjLzFwHgSYE9+wfNgp04=";
   };
 
   # Upstream is a Bun project: it ships only `bun.lock`, no npm lockfile. We
@@ -44,7 +44,7 @@ buildNpmPackage {
     fi
   '';
 
-  npmDepsHash = "sha256-54NgnVKMylwOabK8eO9n+sJ73PdUE/i2pOH+CocG5Ok=";
+  npmDepsHash = "sha256-WliwHnv/TLL9WsaWmxbAQTutkcAubddodmKh030r1tM=";
 
   # `--ignore-scripts` blocks dependency lifecycle scripts (and the root
   # `prepare`/`prepack`, which would try to wire git hooks) during `npm ci`.
@@ -82,7 +82,7 @@ buildNpmPackage {
   meta = {
     description = "Turn GitHub Copilot into an OpenAI/Anthropic-compatible server with Claude Code and Codex support";
     homepage = "https://github.com/ningw42/copilot-proxy";
-    changelog = "https://github.com/ningw42/copilot-proxy/commit/dd704d4c27612570d42831ad1f5104224f749335";
+    changelog = "https://github.com/ningw42/copilot-proxy/commit/0ccf530b189b5a093faecbd26f1ed41cd9be3cda";
     license = lib.licenses.mit;
     mainProgram = "copilot-proxy";
     platforms = lib.platforms.unix;
