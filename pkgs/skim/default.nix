@@ -13,7 +13,7 @@
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "skim";
-  version = "5.1.0";
+  version = "5.1.3";
 
   outputs = [
     "out"
@@ -27,14 +27,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-AB/73sU02/DHV/bnQXpBqmzmGy+roXyIWd4BnN6GWGw=";
+    hash = "sha256-LqGKDB5NGiL25O1WQBY6RRkZio/tYmBfAUQkOT77Goo=";
   };
 
   postPatch = ''
     sed -i -e "s|expand('<sfile>:h:h')|'$out'|" plugin/skim.vim
   '';
 
-  cargoHash = "sha256-tPNAwaefZrwhH7AoQnAkQYQUfKOKWMehHHeoUf7i4yE=";
+  cargoHash = "sha256-AXL6UfFn6kvm8YVCtsshF3chs8ZvnVlNcuzL2/fqf9E=";
 
   nativeBuildInputs = [ installShellFiles ];
   nativeCheckInputs = [
