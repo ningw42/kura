@@ -6,28 +6,21 @@
   makeWrapper,
 }:
 
-buildNpmPackage {
+buildNpmPackage rec {
   pname = "copilot-proxy";
-  # Fork of Jer-y/copilot-proxy tracking the feat/codex-auto-review-alias
-  # branch (2 commits ahead of v0.8.0, no tag). The `-unstable-<date>` suffix
-  # is the commit date of the pinned rev below.
-  version = "0.8.0-unstable-2026-07-13";
+  version = "0.9.0";
 
   src = fetchFromGitHub {
-    owner = "ningw42";
+    owner = "Jer-y";
     repo = "copilot-proxy";
-    # Branch HEAD, not a tag: pin the exact commit. Bump rev + hash + the
-    # `-unstable-` date together when new commits land on the branch.
-    rev = "0ccf530b189b5a093faecbd26f1ed41cd9be3cda";
-    hash = "sha256-R72UXSG0jEUe9rnBB0eZNCXpjLzFwHgSYE9+wfNgp04=";
+    rev = "v${version}";
+    hash = "sha256-N1IhhLSqtIQJ+AY44bMgDkbar63L9n6zjkGG0xdOfIc=";
   };
 
   # Upstream is a Bun project: it ships only `bun.lock`, no npm lockfile. We
   # vendor one regenerated with npm 10 (so transitive deps carry
   # `resolved`/`integrity`, which fetchNpmDeps requires) and drop it in here.
-  # The updater is disabled (see passthru.updateScript below), so regenerate
-  # this by hand when deps change — pkgs/_update/hooks.sh (regen-npm-lockfile)
-  # is the recipe.
+  # See pkgs/_update/hooks.sh (regen-npm-lockfile) for the matching update path.
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
 
@@ -44,14 +37,17 @@ buildNpmPackage {
     fi
   '';
 
-  npmDepsHash = "sha256-WliwHnv/TLL9WsaWmxbAQTutkcAubddodmKh030r1tM=";
+  npmDepsHash = "sha256-IrIEwTc2LPfIFCa/o4tPqWMW/mzt15mTbllYKVsmh84=";
 
   # `--ignore-scripts` blocks dependency lifecycle scripts (and the root
   # `prepare`/`prepack`, which would try to wire git hooks) during `npm ci`.
   # The explicit `npm run build` below still runs — npm only suppresses pre/post
   # hooks under this flag, not the named script. tsdown bundles via a prebuilt
   # rolldown native binary, so nothing needs compiling in the sandbox.
-  npmFlags = [ "--ignore-scripts" ];
+  npmFlags = [
+    "--ignore-scripts"
+    "--legacy-peer-deps"
+  ];
 
   # `npm run build` runs tsdown, bundling src/main.ts -> dist/main.js (ESM,
   # node target). tsdown externalizes the runtime `dependencies`, so the bundle
@@ -68,7 +64,7 @@ buildNpmPackage {
     # package-lock.json (copied read-only from the store in postPatch); the
     # writable cache keeps npm's log writes off the read-only deps store path.
     export npm_config_cache="$TMPDIR/.npm"
-    npm prune --omit=dev --offline --ignore-scripts --no-save
+    npm prune --omit=dev --offline --ignore-scripts --legacy-peer-deps --no-save
 
     mkdir -p $out/lib/copilot-proxy
     cp -r dist node_modules package.json $out/lib/copilot-proxy/
@@ -81,17 +77,19 @@ buildNpmPackage {
 
   meta = {
     description = "Turn GitHub Copilot into an OpenAI/Anthropic-compatible server with Claude Code and Codex support";
-    homepage = "https://github.com/ningw42/copilot-proxy";
-    changelog = "https://github.com/ningw42/copilot-proxy/commit/0ccf530b189b5a093faecbd26f1ed41cd9be3cda";
+    homepage = "https://github.com/Jer-y/copilot-proxy";
+    changelog = "https://github.com/Jer-y/copilot-proxy/releases/tag/v${version}";
     license = lib.licenses.mit;
     mainProgram = "copilot-proxy";
     platforms = lib.platforms.unix;
   };
 
-  # Disabled: this pins a personal fork's feature-branch HEAD, not a release.
-  # The shared driver discovers versions from GitHub releases and its
-  # regen-npm-lockfile hook clones a tag — neither fits a branch snapshot. Bump
-  # src.rev/hash + the version date by hand (regen package-lock.json via the
-  # regen-npm-lockfile recipe if deps change).
-  passthru.updateScript = null;
+  passthru.updateScript = [
+    ../_update/run.sh
+    "--attr"
+    "copilot-proxy"
+    "--use-github-releases"
+    "--pre-hook"
+    "regen-npm-lockfile:Jer-y/copilot-proxy:v:legacy-peer-deps"
+  ];
 }
