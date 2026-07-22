@@ -19,16 +19,21 @@ buildNpmPackage rec {
   # @earendil-works peer packages when it loads the extension, while the
   # TypeScript, Biome, and Vitest dependencies are only upstream tooling.
   # The matching update hook regenerates this production-only lockfile.
+  #
+  # Also point Pi at the root shim installed below. Upstream declares
+  # `src/index.ts`, which makes Pi label the extension `src` in its startup
+  # banner; a root `index.ts` makes the stable package directory supply the
+  # intended `pi-subagents` label instead.
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
     if command -v node >/dev/null; then
-      node --eval 'const fs = require("fs"); const p = JSON.parse(fs.readFileSync("package.json")); delete p.devDependencies; fs.writeFileSync("package.json", JSON.stringify(p, null, 2));'
+      node --eval 'const fs = require("fs"); const p = JSON.parse(fs.readFileSync("package.json")); delete p.devDependencies; p.pi.extensions = ["./index.ts"]; fs.writeFileSync("package.json", JSON.stringify(p, null, 2));'
     fi
   '';
 
   npmDepsHash = "sha256-pM1M9oc5KXlvWGkm56pmy8pP1Aj0AhjGxX/lKqHq2Ao=";
 
-  # Pi loads src/index.ts directly, so there is no runtime build output.
+  # Pi loads the TypeScript sources directly, so there is no build output.
   dontNpmBuild = true;
 
   # Peer dependencies come from Pi rather than this package. No dependency in
@@ -45,6 +50,9 @@ buildNpmPackage rec {
     cp -r src examples node_modules package.json \
       README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md LICENSE \
       $out/lib/pi-subagents/
+    cat > $out/lib/pi-subagents/index.ts <<'EOF'
+    export { default } from "./src/index.js";
+    EOF
 
     runHook postInstall
   '';
