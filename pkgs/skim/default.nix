@@ -1,8 +1,5 @@
 {
   lib,
-  stdenv,
-  tmux,
-  hexdump,
   fetchFromGitHub,
   installShellFiles,
   nix-update-script,
@@ -37,10 +34,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
   cargoHash = "sha256-lw8hNFaBkpPdN2h2qZzNF19I+giIPpazYlFkjMc3GyI=";
 
   nativeBuildInputs = [ installShellFiles ];
-  nativeCheckInputs = [
-    tmux
-    hexdump
-  ];
 
   postBuild = ''
     cat <<SCRIPT > sk-share
@@ -65,19 +58,16 @@ rustPlatform.buildRustPackage (finalAttrs: {
       --zsh shell/completion.zsh
   '';
 
-  # The `skim::listen` tests spawn bash subshells that try to source
-  # /etc/bashrc; the Nix sandbox on Darwin denies that ("Operation not
-  # permitted"), the bash session never delivers input to the listen socket,
-  # and all 30 tests time out. Upstream CI runs these on macos-latest without
-  # the sandbox, so it isn't a skim bug — re-enable once we filter out just
-  # the listen tests (or upstream gains a sandbox-friendly path).
-  doCheck = !stdenv.hostPlatform.isDarwin;
-
-  useNextest = true;
-
-  checkPhase = ''
-    cargo nextest run --release --offline --lib --bins --examples --tests
-  '';
+  # We pin released upstream tags, and skim's own CI already runs this exact
+  # suite (`cargo nextest run --release … --lib --bins --examples --tests`)
+  # across Linux/macOS/Windows before every release, so re-running it here only
+  # duplicates that work — and it dominates a cold build: skim's release profile
+  # (`lto = true`, `codegen-units = 1`) makes compiling the test/example
+  # binaries take ~21 min vs. ~5 min for the `sk` binary itself. A build failure
+  # still surfaces any nixpkgs-toolchain breakage, and `passthru.tests.version`
+  # smoke-tests the installed binary. Restore the test run if we ever ship a
+  # patched or unreleased rev.
+  doCheck = false;
 
   passthru = {
     tests.version = testers.testVersion { package = skim; };
