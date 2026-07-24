@@ -6,13 +6,13 @@
 
 buildNpmPackage rec {
   pname = "pi-subagents";
-  version = "0.14.2";
+  version = "0.14.3";
 
   src = fetchFromGitHub {
     owner = "tintinweb";
     repo = "pi-subagents";
     rev = "v${version}";
-    hash = "sha256-iX2qOqUzdLsIqbCyYVYFN6WufxMBqwMoCZo/tGQF9lM=";
+    hash = "sha256-ZztgK9TUrpLsTSmYTOlHu8f6P5G/EA3MmVhqSfFZLQA=";
   };
 
   # Keep only the extension's direct runtime dependencies. Pi supplies the
@@ -31,7 +31,7 @@ buildNpmPackage rec {
     fi
   '';
 
-  npmDepsHash = "sha256-pM1M9oc5KXlvWGkm56pmy8pP1Aj0AhjGxX/lKqHq2Ao=";
+  npmDepsHash = "sha256-7mXw5eYqxF8GyAjRW6GlpdZOzVHqj9coJtpZPY1oM+w=";
 
   # Pi loads the TypeScript sources directly, so there is no build output.
   dontNpmBuild = true;
