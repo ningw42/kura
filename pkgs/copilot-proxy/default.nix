@@ -8,13 +8,13 @@
 
 buildNpmPackage rec {
   pname = "copilot-proxy";
-  version = "0.9.1";
+  version = "0.9.2";
 
   src = fetchFromGitHub {
     owner = "Jer-y";
     repo = "copilot-proxy";
     rev = "v${version}";
-    hash = "sha256-wuDOs3R9dvD7SrIsnilOPVDZaYkDHMecWzpDMxhrGeI=";
+    hash = "sha256-n2V5f+deojD3KpB1prLC6BCTjUngiX2vTyb/hJIRA+Q=";
   };
 
   # Upstream is a Bun project: it ships only `bun.lock`, no npm lockfile. We
@@ -37,7 +37,7 @@ buildNpmPackage rec {
     fi
   '';
 
-  npmDepsHash = "sha256-jJr7QICIGR8Ql30LyG7AMPDjIoYLWqZ85xIOQh69yUI=";
+  npmDepsHash = "sha256-xemUL8HVyuQApo0p4GX97JRU9u5p0sM2tphGB4eKn/E=";
 
   # `--ignore-scripts` blocks dependency lifecycle scripts (and the root
   # `prepare`/`prepack`, which would try to wire git hooks) during `npm ci`.
