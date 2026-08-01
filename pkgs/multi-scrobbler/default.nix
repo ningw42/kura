@@ -57,7 +57,7 @@ buildNpmPackage rec {
 
   buildPhase = ''
     runHook preBuild
-    # Only build the frontend - backend runs via tsx
+    # Only build the frontend - backend runs from source via node type stripping
     npm run build:frontend
     runHook postBuild
   '';
@@ -68,10 +68,12 @@ buildNpmPackage rec {
     mkdir -p $out/{bin,lib/multi-scrobbler}
     cp -r src dist node_modules package.json tsconfig.json $out/lib/multi-scrobbler/
 
-    # Create wrapper script using tsx to run TypeScript directly
+    # As of 0.15.0 upstream requires node >=24.14.0 and runs the TypeScript
+    # entrypoint directly via node's native type stripping (`tsx` was dropped
+    # from the dep tree) — matching upstream's own service script:
+    # `node /app/src/backend/index.ts`.
     # Use --chdir to set working directory so tsconfig.json can be found
     makeWrapper ${nodejs}/bin/node $out/bin/multi-scrobbler \
-      --add-flags "$out/lib/multi-scrobbler/node_modules/.bin/tsx" \
       --add-flags "$out/lib/multi-scrobbler/src/backend/index.ts" \
       --set NODE_ENV production \
       --chdir "$out/lib/multi-scrobbler"
