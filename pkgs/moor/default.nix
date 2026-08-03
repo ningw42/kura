@@ -9,7 +9,7 @@
 
 buildGoModule (finalAttrs: {
   pname = "moor";
-  version = "2.16.1";
+  version = "2.16.2";
 
   src = fetchFromGitHub {
     owner = "walles";
@@ -17,10 +17,10 @@ buildGoModule (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-eakYy7IDMI1SqsLY7ANeuCr5LrqfTsJcjgcq0IyOAEE=";
+    hash = "sha256-KSS9639wke24T4k4Xlcf0sbMswScWY1Uipq0dWt5MV8=";
   };
 
-  vendorHash = "sha256-PGJ6aSRYgLztkQxHQvXn5ISBK5DIa76lJSOsMTGJNpw=";
+  vendorHash = "sha256-19g9mzt2YHpwuCeroR6vUEhfsHoo4B0Zkm/goPccZqI=";
 
   nativeBuildInputs = [ installShellFiles ];
 
