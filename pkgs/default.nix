@@ -22,6 +22,7 @@ in
         dependencies = (old.dependencies or [ ]) ++ base.optional-dependencies.proxy;
       })
     );
+  mcp-nixos = callPackage ./mcp-nixos { };
   moor = callPackage ./moor { };
   multi-scrobbler = callPackage ./multi-scrobbler { };
   pi-mcp-adapter = callPackage ./pi-mcp-adapter { };
