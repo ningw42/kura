@@ -8,14 +8,14 @@
 
 python3Packages.buildPythonApplication rec {
   pname = "router-maestro";
-  version = "0.7.8";
+  version = "0.7.9";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "MadSkittles";
     repo = "Router-Maestro";
     rev = "v${version}";
-    hash = "sha256-LBCK2aTFbOfdrUHeBF+pIaycsTDIWJcPzd+3Ev3RkiU=";
+    hash = "sha256-azO8Hy5ZwXFzEpRqwkJq5KeAJm8sXK1AFmZR+mPtBFQ=";
   };
 
   build-system = [ python3Packages.hatchling ];
