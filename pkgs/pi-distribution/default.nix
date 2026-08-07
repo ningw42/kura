@@ -16,7 +16,7 @@ buildNpmPackage (finalAttrs: {
     hash = "sha256-Y/R5idp9l0l44HXWfvQuPJHnteSiA5zxORsPAIm9XMY=";
   };
 
-  # pi-cc-extensions bundles this dependency inside its npm tarball, so npm 11
+  # A bundled extension includes this dependency inside its npm tarball, so npm 11
   # omits the nested package's resolved URL from the aggregate lockfile. Add the
   # canonical URL so fetchNpmDeps can also seed npm's offline packument cache.
   postPatch = ''

@@ -18,10 +18,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | litellm | ✅ | |
 | moor | ✅ | ✅ |
 | multi-scrobbler | ✅ | |
-| pi-cc-extensions | ✅ | ✅ |
 | pi-distribution | ✅ | ✅ |
-| pi-mcp-adapter | ✅ | ✅ |
-| pi-subagents | ✅ | ✅ |
 | router-maestro | ✅ | |
 | sing-box | ✅ | |
 | skim | ✅ | ✅ |

@@ -24,10 +24,7 @@ in
     );
   moor = callPackage ./moor { };
   multi-scrobbler = callPackage ./multi-scrobbler { };
-  pi-cc-extensions = callPackage ./pi-cc-extensions { };
   pi-distribution = callPackage ./pi-distribution { };
-  pi-mcp-adapter = callPackage ./pi-mcp-adapter { };
-  pi-subagents = callPackage ./pi-subagents { };
   router-maestro = callPackage ./router-maestro { };
   sing-box = callPackage ./sing-box { };
   skim = callPackage ./skim { };

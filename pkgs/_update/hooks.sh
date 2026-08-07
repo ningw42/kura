@@ -58,7 +58,7 @@ sync_go_builder() {
 #                        or when a dev-only transitive dep lacks `integrity`
 #                        (which breaks fetchNpmDeps). The matching default.nix
 #                        must also strip devDependencies in postPatch so
-#                        `npm ci` stays in sync. Example: pi-mcp-adapter.
+#                        `npm ci` stays in sync.
 #
 # Tolerates upstream repos that ship no lockfile (the dep-pin step is then a
 # no-op and npm resolves fresh from the registry).

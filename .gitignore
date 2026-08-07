@@ -2,6 +2,7 @@ result
 result-*
 .direnv
 .pre-commit-config.yaml
+.pi
 
 # Per-package logs left behind by `nix run .#update`.
 *.log
