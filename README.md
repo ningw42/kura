@@ -11,6 +11,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | brave-search-mcp-server | ✅ | |
 | clash-premium | ✅ | |
 | copilot-proxy | ✅ | |
+| copilotd | ✅ | |
 | fzf | ✅ | ✅ |
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
@@ -19,6 +20,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | multi-scrobbler | ✅ | |
 | pi-cc-extensions | ✅ | ✅ |
 | pi-mcp-adapter | ✅ | ✅ |
+| pi-subagents | ✅ | ✅ |
 | router-maestro | ✅ | |
 | sing-box | ✅ | |
 | skim | ✅ | ✅ |
