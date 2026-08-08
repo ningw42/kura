@@ -7,38 +7,59 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "0-unstable-2026-08-07";
+  version = "26.08.1";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
-    rev = "8cc0e6dc0f544339176c86719af3377d8468a1f0";
-    hash = "sha256-Y/R5idp9l0l44HXWfvQuPJHnteSiA5zxORsPAIm9XMY=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-LUjzG6jS3dk2O4/fFFG0i2FUIFLedqlqTyaOV6TAYLg=";
   };
 
-  # A bundled extension includes this dependency inside its npm tarball, so npm 11
-  # omits the nested package's resolved URL from the aggregate lockfile. Add the
-  # canonical URL so fetchNpmDeps can also seed npm's offline packument cache.
+  # npm 11 omits integrity metadata copied from pi-coding-agent's shrinkwrap.
+  # Restore it so fetchNpmDeps can seed its offline cache.
   postPatch = ''
-    substituteInPlace package-lock.json \
-      --replace-fail \
-        '"version": "0.2.5",' \
-        '"version": "0.2.5",
-      "resolved": "https://registry.npmjs.org/@tifan/pi-fixed-editor/-/pi-fixed-editor-0.2.5.tgz",
-      "integrity": "sha512-54Vfj1K+RxBBGFA7wJ+INWRtpefa2jTNRgmc9xWddS2upI1gHYqtGQQz+xPVmaP/X6cys8PB+dWWMXkZmO/73Q==",'
+    addIntegrity() {
+      substituteInPlace package-lock.json \
+        --replace-fail \
+          "\"resolved\": \"$1\"," \
+          "\"resolved\": \"$1\",
+      \"integrity\": \"$2\","
+    }
+
+    addIntegrity \
+      "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.1.tgz" \
+      "sha512-evyzXYWCLQGmcaBYHlmSku02r8qoN4SGI60GZABo6iV+H+nqX+P9ud8fEZ4GmRq9mUSREvvfX+w9dA9ThF9C6w=="
+    addIntegrity \
+      "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz" \
+      "sha512-wMsAdJMxuNri08vLqTyYVI201DQQezGhPSTkzYsHdw5dYX3rCNwEmSvpaAwhi7ELKI/2tE/CEgSWg/6iRxSgdQ=="
+    addIntegrity \
+      "https://registry.npmjs.org/@earendil-works/pi-client/-/pi-client-0.84.1.tgz" \
+      "sha512-/V5hGHE4Zq+jG0GtwIB9PyBUOGd6gBLZ7lkQYFKchKnxYHeH3rmWC5xw4kpnZKKBuBuFTdLVbU9vEjlAGMMb2A=="
+    addIntegrity \
+      "https://registry.npmjs.org/@earendil-works/pi-protocol/-/pi-protocol-0.84.1.tgz" \
+      "sha512-Ox1pciyeSPGEEUcxvR0/dJcrY7C6hrEGA8y71rOsvSIUlXN1Cbp/be/eoL71OGDBk5O97TeQPfWN6Ju/2Ehjww=="
+    addIntegrity \
+      "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.1.tgz" \
+      "sha512-180/xGJtsq7IoR3p9EKWjRd0e9M4DkxInhlo9xyD7prDC7Qrhqq+nhvwrW0lFjPfXcEI2FSHmGCSyvSJE9GsaQ=="
+    addIntegrity \
+      "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.1.tgz" \
+      "sha512-udeXFbgEhJ6JiB0uguwNVNkDy2FENfmtQwPcY+/iJ8GWeq18wkal1tKqa5YyeH0IqtX1vG0cGh8zfSYzyzVuLA=="
   '';
 
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-BdcfsBvhTdnJiughC4vuD3+gqLHLJ/Glzwe16HkZymA=";
+  npmDepsHash = "sha256-66K2qHsMgv9y0DnFMGu2mNRv2SBvTCfi01PNVHDD01I=";
 
   # The package ships TypeScript extensions directly for Pi to load.
   dontNpmBuild = true;
 
   # None of the production dependencies needs a lifecycle script. Pi provides
-  # the optional peer packages at runtime.
+  # the optional peer packages at runtime, and upstream's dev dependency is only
+  # needed for its smoke test.
   npmFlags = [
     "--ignore-scripts"
     "--legacy-peer-deps"
+    "--omit=dev"
   ];
 
   doCheck = true;
@@ -65,14 +86,14 @@ buildNpmPackage (finalAttrs: {
   passthru.updateScript = nix-update-script {
     extraArgs = [
       "--flake"
-      "--version=branch"
+      "--use-github-releases"
     ];
   };
 
   meta = {
     description = "Aggregate package of Pi extensions, skills, and themes";
     homepage = "https://github.com/ningw42/pi-distribution";
-    changelog = "https://github.com/ningw42/pi-distribution/commits/main";
+    changelog = "https://github.com/ningw42/pi-distribution/releases/tag/v${finalAttrs.version}";
     platforms = lib.platforms.unix;
   };
 })
