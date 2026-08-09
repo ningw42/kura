@@ -7,13 +7,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.08.3";
+  version = "26.08.4";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-56sqPBYOn5qwNl5aHnXrCpzm2c4n3UBUg1B2VhWuleQ=";
+    hash = "sha256-otpYdTBC9wI68TUXRJ9vd14W6J0cj+6m4rGP0ofd1Jc=";
   };
 
   # npm 11 omits integrity metadata copied from pi-coding-agent's shrinkwrap.
