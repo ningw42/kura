@@ -10,7 +10,6 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 |---|:-:|:-:|
 | brave-search-mcp-server | ✅ | |
 | clash-premium | ✅ | |
-| copilot-proxy | ✅ | |
 | copilotd | ✅ | |
 | fzf | ✅ | ✅ |
 | koito | ✅ | |

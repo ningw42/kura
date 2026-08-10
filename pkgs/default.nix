@@ -7,7 +7,6 @@ in
 {
   brave-search-mcp-server = callPackage ./brave-search-mcp-server { };
   clash-premium = callPackage ./clash-premium { };
-  copilot-proxy = callPackage ./copilot-proxy { };
   copilotd = callPackage ./copilotd { };
   fzf = callPackage ./fzf { };
   koito = callPackage ./koito { };
