@@ -4,7 +4,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 
 ## What's in here
 
-✅ marks a platform the package is **prebuilt and cached** for; a blank cell builds from source. Every package is exposed for both systems regardless — the table only reflects what's cached (see [Caching](#caching)).
+✅ marks a platform the package is **prebuilt and cached** for; a blank cell means no prebuilt artifact, so supported packages build from source. Every package attribute is exposed for both systems regardless — the table only reflects what's cached (see [Caching](#caching)).
 
 | Package | x86_64-linux | aarch64-darwin |
 |---|:-:|:-:|
@@ -53,26 +53,27 @@ See `pkgs/<name>/default.nix` for each derivation.
 }
 ```
 
-The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Only Linux is cached by default; Darwin works but builds from source unless added to `matrix.nix` (see [Caching](#caching) below).
+The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Every Linux package is cached; on Darwin, only the checkmarked packages above are cached. Other supported Darwin packages build from source unless added to `matrix.nix` (see [Caching](#caching) below).
 
 ## Updating packages
 
 Every updatable package declares its own `passthru.updateScript`. A single command drives the lot:
 
 ```bash
-nix run .#update                            # update every package in parallel
+nix run .#update                            # update every updatable package in parallel
 nix run .#update -- --package telepush      # just one
+nix run .#update -- --max-workers 4         # cap parallel update jobs
 nix run .#update -- --skip-prompt           # don't ask before starting
 nix run .#update -- --commit                # one commit per package, auto-generated message
 ```
 
-What happens under the hood: `pkgs/_update/runner.nix` wraps nixpkgs' standard `maintainers/scripts/update.nix` and points it at our `packages.<system>` attrset. For each package, it runs `nix-update` (plus any pre/post hooks declared in `default.nix`), updates version + hashes in place, and reports per-package success/failure.
+What happens under the hood: `pkgs/_update/runner.nix` wraps nixpkgs' standard `maintainers/scripts/update.nix` and points it at our `packages.<system>` attrset. For each updatable package, it runs `nix-update` (plus any pre/post hooks declared in `default.nix`), updates version + hashes in place, and reports per-package success/failure.
 
 ### A few things to know
 
 - **Authenticated GitHub API.** The `apps.update` shell wrapper in `flake.nix` reads `~/.config/nix/access-tokens.conf` and exports `GITHUB_TOKEN` so `nix-update` doesn't get rate-limited at 60/hr. Make sure that file exists (it's the same one `nix.settings.access-tokens` writes).
-- **Already-current packages are a no-op.** The driver short-circuits before doing real work if the upstream version matches what's checked in.
-- **Pre/post hooks.** A few packages need work that `nix-update` can't do on its own: bumping `buildGoNNModule` to match upstream `go.mod`, regenerating an npm lockfile with npm 10 because upstream's npm 11 lockfile drops `resolved` URLs, etc. These live as named functions in `pkgs/_update/hooks.sh` and are wired declaratively in each package's `default.nix`.
+- **Already-current packages are a no-op.** `nix-update` leaves them unchanged; when pre-hooks are configured, the shared driver checks the version first and skips both the hooks and `nix-update`.
+- **Pre/post hooks.** A few packages need work that `nix-update` can't do on its own: bumping `buildGoNNModule` to match upstream `go.mod`, regenerating an npm lockfile with npm 10, or refreshing missing Yarn Berry hashes. These live as named functions in `pkgs/_update/hooks.sh` and are wired declaratively in each package's `default.nix`.
 
 ### When an update fails
 
@@ -94,7 +95,7 @@ nix build .#<pkg-name>
 2. Wire it into `pkgs/default.nix` (use `callPackage` or `callPythonPackage`).
 3. Add `passthru.updateScript`:
    - **Simple case**: `nix-update-script { extraArgs = [ "--flake" "--use-github-releases" ]; };`
-   - **Needs custom work**: see existing examples in `pkgs/telepush/default.nix` (post-hook), `pkgs/brave-search-mcp-server/default.nix` (pre-hook), `pkgs/koito/default.nix` (multi-attr + post-hook).
+   - **Needs custom work**: see existing examples in `pkgs/telepush/default.nix` (post-hook), `pkgs/brave-search-mcp-server/default.nix` (pre-hook), `pkgs/koito/default.nix` (multi-attr + pre/post hooks).
 4. `nix build .#<name>` to verify it builds.
 5. `nix run .#update -- --package <name> --skip-prompt` to verify the updater is a no-op at the current version.
 
@@ -108,13 +109,13 @@ nix fmt              # format everything via treefmt (nixfmt + yamlfmt)
 nix flake check      # evaluate everything, run formatter + pre-commit checks
 ```
 
-The first `nix develop` after cloning or after editing `git-hooks.nix` will install the pre-commit hooks. Pre-commit enforces conventional commit messages (`convco`), formatting, and a few sanity checks (no merge conflicts, no private keys, trimmed whitespace).
+The first `nix develop` after cloning installs the pre-commit hooks; re-run it after changing flake inputs or `git-hooks.nix`. Pre-commit enforces conventional commit messages (`convco`), formatting, and a few sanity checks (no merge conflicts, no private keys, trimmed whitespace).
 
 ## Caching
 
 A GitHub Actions pipeline builds and caches off `master`:
 
-- **GitHub Actions → Cachix + Attic.** The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, matrix-builds each package, and pushes the closure to `kura.cachix.org` and a self-hosted Attic cache in parallel. Runs on push to `master` and on manual dispatch.
+- **GitHub Actions → Cachix + Attic.** The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, matrix-builds each package, and pushes the closure to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
 
 To consume the public cache, add the substituter to your Nix config:
 
@@ -134,8 +135,9 @@ nix.settings = {
 ### Setting up the Cachix + Attic pipeline (one-time)
 
 1. Create the `kura` cache on <https://app.cachix.org>, generate a write auth token, and add it as the `CACHIX_AUTH_TOKEN` repo secret.
-2. Mint a push+pull token on the Attic server scoped to `kura` and add it as the `ATTIC_TOKEN` repo secret.
-3. Copy the Cachix public key into the `trusted-public-keys` snippet above (and update this README).
+2. Add the Attic server URL and cache name as the `ATTIC_ENDPOINT` and `ATTIC_CACHE` repo secrets.
+3. Mint a push+pull token on the Attic server scoped to that cache and add it as the `ATTIC_TOKEN` repo secret.
+4. Copy the Cachix public key into the `trusted-public-keys` snippet above (and update this README).
 
 ## Repo layout
 
