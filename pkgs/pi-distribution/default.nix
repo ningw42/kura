@@ -7,13 +7,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.08.8";
+  version = "26.08.7";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-QU8+Szd3+5f7WZK5AswKOX/h4gek11NvH4nL4Ij8nbk=";
+    hash = "sha256-h0cjHdHPzfI7ewZtuVxjh1AKq8x1O5BJpQczKO3yzaY=";
   };
 
   # npm 11 omits integrity metadata copied from pi-coding-agent's shrinkwrap.
@@ -48,7 +48,7 @@ buildNpmPackage (finalAttrs: {
   '';
 
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-OzhKqOwkZksETKop8GxjESHENmKBOVYRZHi/aYAWg9g=";
+  npmDepsHash = "sha256-g5F21Y7mImVnIOgqKQ+8RpdxwCPouxwmxM4t/L7UTWo=";
 
   # The package ships TypeScript extensions directly for Pi to load.
   dontNpmBuild = true;
