@@ -28,27 +28,27 @@ buildNpmPackage (finalAttrs: {
     }
 
     addIntegrity \
-      "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.1.tgz" \
-      "sha512-evyzXYWCLQGmcaBYHlmSku02r8qoN4SGI60GZABo6iV+H+nqX+P9ud8fEZ4GmRq9mUSREvvfX+w9dA9ThF9C6w=="
+      "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.84.2.tgz" \
+      "sha512-8Pn3wSCxj0cfo5I6jxQYVB/3uuQRmHhAlEclyjqpOuMEdQMIODHizRogv56FLdbU+dTiGnybeHQ2N+sV1/L2YA=="
     addIntegrity \
-      "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.1.tgz" \
-      "sha512-wMsAdJMxuNri08vLqTyYVI201DQQezGhPSTkzYsHdw5dYX3rCNwEmSvpaAwhi7ELKI/2tE/CEgSWg/6iRxSgdQ=="
+      "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.84.2.tgz" \
+      "sha512-6MzsrYIYNVlE7SfpbL2yYb67Qo58p/7Q+xWG1RZvoX1P80aRCHSod2/13aFpxkow1lPO2LEh3c495J0Gwmyjig=="
     addIntegrity \
-      "https://registry.npmjs.org/@earendil-works/pi-client/-/pi-client-0.84.1.tgz" \
-      "sha512-/V5hGHE4Zq+jG0GtwIB9PyBUOGd6gBLZ7lkQYFKchKnxYHeH3rmWC5xw4kpnZKKBuBuFTdLVbU9vEjlAGMMb2A=="
+      "https://registry.npmjs.org/@earendil-works/pi-client/-/pi-client-0.84.2.tgz" \
+      "sha512-/RFSPhD/bZbpOp1oJj+UneSUFSgZhWxzcSENUY+8+8xhoBrWXMYI2t77XNx4Yf+c8YK2qTHquForhNcelYpXvg=="
     addIntegrity \
-      "https://registry.npmjs.org/@earendil-works/pi-protocol/-/pi-protocol-0.84.1.tgz" \
-      "sha512-Ox1pciyeSPGEEUcxvR0/dJcrY7C6hrEGA8y71rOsvSIUlXN1Cbp/be/eoL71OGDBk5O97TeQPfWN6Ju/2Ehjww=="
+      "https://registry.npmjs.org/@earendil-works/pi-protocol/-/pi-protocol-0.84.2.tgz" \
+      "sha512-jbBh03fkeckWEroHpcZBr4w5/Ibat8WwdXFlXHivYQImrQNFtLpDeL0t1cku4hmK0q3pceIRQHkw4fwbM4YILQ=="
     addIntegrity \
-      "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.1.tgz" \
-      "sha512-180/xGJtsq7IoR3p9EKWjRd0e9M4DkxInhlo9xyD7prDC7Qrhqq+nhvwrW0lFjPfXcEI2FSHmGCSyvSJE9GsaQ=="
+      "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.2.tgz" \
+      "sha512-wg5caea7uIv1BHRBm2Y116RvFG4oSAiP5qk9tA2463PDGIr4K8M1Ceyyg5DOpF/shUUl0gk826yQJAeAcHYB9g=="
     addIntegrity \
-      "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.1.tgz" \
-      "sha512-udeXFbgEhJ6JiB0uguwNVNkDy2FENfmtQwPcY+/iJ8GWeq18wkal1tKqa5YyeH0IqtX1vG0cGh8zfSYzyzVuLA=="
+      "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.84.2.tgz" \
+      "sha512-ds2TLihOnM5sLJB3VpXV6y0uR5efVuHf4MN7yDpsty6hA2DUO/EDVzjp/0od0G2JslzVLMjT8T8zavtxVb+qbg=="
   '';
 
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-g5F21Y7mImVnIOgqKQ+8RpdxwCPouxwmxM4t/L7UTWo=";
+  npmDepsHash = "sha256-i9+zAmQbSL2ESyQ3oVgPk0feDjQ4ISlcfbEFH3xeteA=";
 
   # The package ships TypeScript extensions directly for Pi to load.
   dontNpmBuild = true;
