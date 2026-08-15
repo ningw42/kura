@@ -115,7 +115,15 @@ The first `nix develop` after cloning installs the pre-commit hooks; re-run it a
 
 A GitHub Actions pipeline builds and caches off `master`:
 
-- **GitHub Actions → Cachix + Attic.** The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, matrix-builds each package, and pushes the closure to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
+- **GitHub Actions → Cachix + Attic.** The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, builds only package outputs that changed since the latest successful cache run, and pushes their closures to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
+
+### How selective cache builds work
+
+For a push, the discovery job finds the latest successful run of the same workflow on the branch and checks out its commit as a local baseline flake. `matrix.nix` evaluates every target in the current and baseline flakes and compares their exact Nix `outPath`s; it does not infer affected packages from changed file paths. A target gets a builder when its output path differs, when it did not exist in the baseline flake, or when it is newly included in the platform matrix.
+
+A selective run is still a complete cache checkpoint: an unchanged output path names the same Nix store object covered by an earlier successful run, while every changed path is built and pushed by the current run. Failed or canceled runs never become the baseline, so the next run compares against the older successful checkpoint and includes all accumulated changes. Manual dispatches and pushes with no successful baseline build the full matrix.
+
+This assumes paths reported by successful jobs remain in both caches. If either cache is purged independently of the workflow, use a manual dispatch to repopulate the full matrix.
 
 To consume the public cache, add the substituter to your Nix config:
 

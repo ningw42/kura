@@ -1,8 +1,9 @@
 name: Build & Push to Caches
-# Builds every package and pushes the closures to two caches in parallel:
-# Cachix (kura.cachix.org) and our self-hosted Attic at cache.ningwang.me/kura.
-# `matrix.nix` is the source of truth for what to build per platform: the
-# discovery job expands its build list and fans the matrix out from there.
+# Builds package outputs that changed since the latest successful run and
+# pushes their closures to two caches in parallel: Cachix (kura.cachix.org)
+# and our self-hosted Attic at cache.ningwang.me/kura. `matrix.nix` is the
+# source of truth for what to build per platform and compares exact Nix output
+# paths, rather than inferring affected packages from changed source paths.
 #
 # Setup required (one-time):
 #   1. Create the `kura` cache on https://app.cachix.org, generate an auth
@@ -24,6 +25,9 @@ on:
 concurrency:
   group: build-and-cache-${{ github.ref }}
   cancel-in-progress: false
+permissions:
+  actions: read
+  contents: read
 jobs:
   discover:
     name: Discover packages from matrix.nix
@@ -40,16 +44,53 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build matrix from matrix.nix
         id: matrix
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          # matrix.nix holds the build list plus the wildcard-expansion and
-          # system→runner mapping, so the workflow itself is a single eval.
-          matrix_json=$(nix eval --json --impure --expr "
+          # Compare against the last run that successfully populated both
+          # caches, not github.event.before. The latter can miss an update if
+          # an intermediate run failed or was replaced while pending.
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            baseline_sha=$(
+              gh api --method GET \
+                "/repos/$GITHUB_REPOSITORY/actions/workflows/build-and-push-to-caches.yml/runs" \
+                -f branch="$GITHUB_REF_NAME" \
+                -f status=success \
+                -f per_page=1 \
+                --jq '.workflow_runs[0].head_sha // empty'
+            )
+
+            if [[ -n "$baseline_sha" ]]; then
+              if ! git cat-file -e "$baseline_sha^{commit}" 2>/dev/null; then
+                git fetch --no-tags --depth=1 origin "$baseline_sha"
+              fi
+              export KURA_PREVIOUS_FLAKE="$RUNNER_TEMP/kura-previous"
+              git worktree add --detach "$KURA_PREVIOUS_FLAKE" "$baseline_sha"
+              echo "Baseline: $baseline_sha"
+            else
+              echo "No successful baseline; building the full matrix"
+            fi
+          else
+            echo "Manual dispatch; building the full matrix"
+          fi
+
+          # matrix.nix holds the build list, wildcard expansion, system→runner
+          # mapping, and exact output-path comparison in a single evaluation.
+          matrix_json=$(nix eval --json --impure --expr '
+            let
+              previousPath = builtins.getEnv "KURA_PREVIOUS_FLAKE";
+            in
             import ./matrix.nix {
               self = builtins.getFlake (toString ./.);
+              previous =
+                if previousPath == "" then
+                  null
+                else
+                  builtins.getFlake previousPath;
             }
-          ")
+          ')
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "Matrix: $matrix_json"
   build:

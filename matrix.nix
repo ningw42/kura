@@ -2,15 +2,17 @@
 #
 # Called from .github/workflows/build-and-push-to-caches.yml. Wildcards
 # (`packages.<system>.*`) are expanded by reading attribute names from the
-# flake; specific entries are passed through. Unknown systems throw rather
-# than silently dropping rows, so a typo fails CI instead of skipping a
-# package.
+# flake; specific entries are passed through. When `previous` is provided,
+# only new targets and targets whose Nix output path changed are returned.
+# Unknown systems throw rather than silently dropping rows, so a typo fails
+# CI instead of skipping a package.
 #
 # `includes` below is the build list — the sole source of truth for what the
 # cache pipeline builds per platform. Add a package's attr path here to opt it
 # into the cache.
 {
   self,
+  previous ? null,
 }:
 let
   lib = self.inputs.nixpkgs.lib;
@@ -35,7 +37,7 @@ let
   };
 
   parseEntry =
-    entry:
+    flake: entry:
     let
       parts = lib.splitString "." entry;
       prefix = builtins.elemAt parts 0;
@@ -52,8 +54,60 @@ let
     if prefix != "packages" || builtins.length parts < 3 then
       throw "matrix.nix: unsupported include '${entry}' (expected packages.<system>.<name>)"
     else if package == "*" then
-      map mkRow (builtins.attrNames self.packages.${system})
+      map mkRow (builtins.attrNames flake.packages.${system})
     else
       [ (mkRow package) ];
+
+  rows = builtins.concatMap (parseEntry self) includes;
+  rowKey = row: "${row.system}.${row.package}";
+
+  # Matrix membership matters independently of derivation identity: opting an
+  # existing package into a new platform must build it even if that derivation
+  # already existed in the previous flake.
+  previousRows =
+    if previous == null then
+      [ ]
+    else
+      let
+        previousMatrix = previous.outPath + "/matrix.nix";
+      in
+      if builtins.pathExists previousMatrix then import previousMatrix { self = previous; } else [ ];
+  previousRowKeys = map rowKey previousRows;
+
+  packageAt =
+    flake: row:
+    lib.attrByPath (
+      [
+        "packages"
+        row.system
+      ]
+      ++ lib.splitString "." row.package
+    ) null flake;
+
+  currentOutPath =
+    row:
+    let
+      package = packageAt self row;
+    in
+    if package == null || !(builtins.isAttrs package && package ? outPath) then
+      throw "matrix.nix: '${rowKey row}' is not a package derivation"
+    else
+      toString package.outPath;
+
+  previousOutPath =
+    row:
+    let
+      package = packageAt previous row;
+    in
+    if package == null || !(builtins.isAttrs package && package ? outPath) then
+      null
+    else
+      toString package.outPath;
+
+  changedSincePrevious =
+    row:
+    previous == null
+    || !(builtins.elem (rowKey row) previousRowKeys)
+    || previousOutPath row != currentOutPath row;
 in
-builtins.concatMap parseEntry includes
+builtins.filter changedSincePrevious rows
