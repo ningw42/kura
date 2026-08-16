@@ -111,19 +111,18 @@ nix flake check      # evaluate everything, run formatter + pre-commit checks
 
 The first `nix develop` after cloning installs the pre-commit hooks; re-run it after changing flake inputs or `git-hooks.nix`. Pre-commit enforces conventional commit messages (`convco`), formatting, and a few sanity checks (no merge conflicts, no private keys, trimmed whitespace).
 
-## Caching
+## Build validation and caching
 
-A GitHub Actions pipeline builds and caches off `master`:
+Two GitHub Actions workflows share `matrix.nix` and `.github/scripts/evaluate-build-matrix.sh`:
 
-- **GitHub Actions → Cachix + Attic.** The `Build & Push to Caches` workflow at `.github/workflows/build-and-push-to-caches.yml` expands `matrix.nix` into a build matrix, builds only package outputs that changed since the latest successful cache run, and pushes their closures to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
+- **Validate package builds.** `.github/workflows/validate-package-builds.yml` runs on pushes to `master` and pull requests targeting `master`, then builds the configured package outputs that differ from the event baseline. It configures no writable cache and publishes nothing. Its stable `Package build validation` result job is suitable for a required branch-protection check.
+- **GitHub Actions → Cachix + Attic.** `.github/workflows/build-and-push-to-caches.yml` builds outputs changed since the latest successful run of that workflow and pushes their closures to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
 
-### How selective cache builds work
+For validation, a pull request is compared with its base commit and a push with its pre-push commit. For cache publishing, the baseline is instead the latest successful cache run on the branch: an intermediate failed or canceled run therefore cannot leave changed outputs unpublished. Manual runs and events with no usable baseline build the full matrix.
 
-For a push, the discovery job finds the latest successful run of the same workflow on the branch and checks out its commit as a local baseline flake. `matrix.nix` evaluates every target in the current and baseline flakes and compares their exact Nix `outPath`s; it does not infer affected packages from changed file paths. A target gets a builder when its output path differs, when it did not exist in the baseline flake, or when it is newly included in the platform matrix.
+`matrix.nix` evaluates every configured target in the current and baseline flakes and compares exact Nix `outPath`s; it does not infer affected packages from changed source paths. A target gets a builder when its output path differs, when it did not exist in the baseline flake, or when it is newly included in the platform matrix.
 
-A selective run is still a complete cache checkpoint: an unchanged output path names the same Nix store object covered by an earlier successful run, while every changed path is built and pushed by the current run. Failed or canceled runs never become the baseline, so the next run compares against the older successful checkpoint and includes all accumulated changes. Manual dispatches and pushes with no successful baseline build the full matrix.
-
-This assumes paths reported by successful jobs remain in both caches. If either cache is purged independently of the workflow, use a manual dispatch to repopulate the full matrix.
+A selective publishing run is still a complete cache checkpoint: an unchanged output path names the same Nix store object covered by an earlier successful run, while every changed path is built and pushed by the current run. This assumes paths reported by successful jobs remain in both caches. If either cache is purged independently of the workflow, use a manual dispatch to repopulate the full matrix.
 
 To consume the public cache, add the substituter to your Nix config:
 
@@ -138,7 +137,7 @@ nix.settings = {
 };
 ```
 
-`matrix.nix` is the source of truth for what the pipeline builds per platform. To add a Darwin build for a specific package, add `packages.aarch64-darwin.<name>` to its `includes` list.
+`matrix.nix` is the source of truth for what validation builds and the cache pipeline publishes per platform. To add a Darwin build for a specific package, add `packages.aarch64-darwin.<name>` to its `includes` list.
 
 ### Setting up the Cachix + Attic pipeline (one-time)
 

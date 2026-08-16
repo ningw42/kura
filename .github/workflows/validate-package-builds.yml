@@ -1,0 +1,94 @@
+name: Validate package builds
+# Builds package outputs changed by pushes to master and pull requests targeting
+# master, using matrix.nix as the platform/package allowlist. This workflow
+# deliberately configures no writable cache: publishing remains the
+# responsibility of the master-only Build & Push to Caches workflow.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+concurrency:
+  group: validate-package-builds-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  discover:
+    name: Discover changed packages
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build matrix from matrix.nix
+        id: matrix
+        env:
+          PR_BASELINE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASELINE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) baseline_sha="$PR_BASELINE_SHA" ;;
+            push) baseline_sha="$PUSH_BASELINE_SHA" ;;
+            *) baseline_sha="" ;;
+          esac
+
+          matrix_json=$(./.github/scripts/evaluate-build-matrix.sh "$baseline_sha")
+          echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
+          echo "Matrix: $matrix_json"
+  build:
+    name: build ${{ matrix.package }} (${{ matrix.system }})
+    needs: discover
+    if: needs.discover.outputs.matrix != '[]'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31.10.6
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build ${{ matrix.package }}
+        run: nix build --no-link --print-build-logs ".#packages.${{ matrix.system }}.${{ matrix.package }}"
+  result:
+    name: Package build validation
+    needs:
+      - discover
+      - build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # A stable job name can be selected as the required branch-protection
+      # check even though the package build jobs are a dynamic matrix.
+      - name: Check matrix jobs
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          DISCOVER_RESULT: ${{ needs.discover.result }}
+        run: |
+          if [[ "$DISCOVER_RESULT" != "success" ]]; then
+            echo "Package discovery result: $DISCOVER_RESULT" >&2
+            exit 1
+          fi
+          if [[ "$BUILD_RESULT" != "success" && "$BUILD_RESULT" != "skipped" ]]; then
+            echo "Package build result: $BUILD_RESULT" >&2
+            exit 1
+          fi
+          echo "Package build validation passed (build result: $BUILD_RESULT)"

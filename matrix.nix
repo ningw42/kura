@@ -1,15 +1,15 @@
 # Expand the CI build list into a GitHub Actions matrix.
 #
-# Called from .github/workflows/build-and-push-to-caches.yml. Wildcards
+# Called by the validation and cache-publishing workflows. Wildcards
 # (`packages.<system>.*`) are expanded by reading attribute names from the
 # flake; specific entries are passed through. When `previous` is provided,
 # only new targets and targets whose Nix output path changed are returned.
 # Unknown systems throw rather than silently dropping rows, so a typo fails
 # CI instead of skipping a package.
 #
-# `includes` below is the build list — the sole source of truth for what the
-# cache pipeline builds per platform. Add a package's attr path here to opt it
-# into the cache.
+# `includes` below is the build list — the sole source of truth for what CI
+# validates and the cache pipeline publishes per platform. Add a package's
+# attr path here to opt it into both.
 {
   self,
   previous ? null,
@@ -29,8 +29,7 @@ let
   ];
 
   # Each supported system maps to the GitHub-hosted runner image used to
-  # build it. Add a row here when opting a new platform into the cache
-  # pipeline.
+  # build it. Add a row here when opting a new platform into CI.
   systemRunners = {
     "x86_64-linux" = "ubuntu-latest";
     "aarch64-darwin" = "macos-latest";

@@ -21,6 +21,7 @@ on:
       - "flake.nix"
       - "flake.lock"
       - "matrix.nix"
+      - ".github/scripts/evaluate-build-matrix.sh"
       - ".github/workflows/build-and-push-to-caches.yml"
 concurrency:
   group: build-and-cache-${{ github.ref }}
@@ -49,6 +50,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          baseline_sha=""
+
           # Compare against the last run that successfully populated both
           # caches, not github.event.before. The latter can miss an update if
           # an intermediate run failed or was replaced while pending.
@@ -61,36 +64,9 @@ jobs:
                 -f per_page=1 \
                 --jq '.workflow_runs[0].head_sha // empty'
             )
-
-            if [[ -n "$baseline_sha" ]]; then
-              if ! git cat-file -e "$baseline_sha^{commit}" 2>/dev/null; then
-                git fetch --no-tags --depth=1 origin "$baseline_sha"
-              fi
-              export KURA_PREVIOUS_FLAKE="$RUNNER_TEMP/kura-previous"
-              git worktree add --detach "$KURA_PREVIOUS_FLAKE" "$baseline_sha"
-              echo "Baseline: $baseline_sha"
-            else
-              echo "No successful baseline; building the full matrix"
-            fi
-          else
-            echo "Manual dispatch; building the full matrix"
           fi
 
-          # matrix.nix holds the build list, wildcard expansion, system→runner
-          # mapping, and exact output-path comparison in a single evaluation.
-          matrix_json=$(nix eval --json --impure --expr '
-            let
-              previousPath = builtins.getEnv "KURA_PREVIOUS_FLAKE";
-            in
-            import ./matrix.nix {
-              self = builtins.getFlake (toString ./.);
-              previous =
-                if previousPath == "" then
-                  null
-                else
-                  builtins.getFlake previousPath;
-            }
-          ')
+          matrix_json=$(./.github/scripts/evaluate-build-matrix.sh "$baseline_sha")
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
           echo "Matrix: $matrix_json"
   build:
