@@ -2,7 +2,7 @@
 
 let
   callPackage = pkgs.callPackage;
-  callPythonPackage = pkgs.python313Packages.callPackage;
+  callPythonPackage = pkgs.python3Packages.callPackage;
 in
 {
   brave-search-mcp-server = callPackage ./brave-search-mcp-server { };
@@ -13,7 +13,7 @@ in
   lazygit = callPackage ./lazygit { };
   litellm =
     let
-      py = pkgs.python313Packages;
+      py = pkgs.python3Packages;
       base = callPythonPackage ./litellm { };
     in
     py.toPythonApplication (
