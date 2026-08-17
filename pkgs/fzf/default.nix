@@ -14,7 +14,7 @@
 
 buildGoModule (finalAttrs: {
   pname = "fzf";
-  version = "0.74.2";
+  version = "0.74.3";
 
   __structuredAttrs = true;
 
@@ -24,7 +24,7 @@ buildGoModule (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-b/dQOebD8pbg+oX2Q9n4hNqdKgW/xLp4HhoGKp6BaTM=";
+    hash = "sha256-DIz3Nudiov2uwxAtq6++rt2zwz0adOlv9W+c0SW3EHc=";
   };
 
   vendorHash = "sha256-NojjUf/3c4q4B96eQ/qcI+GdRvHakHUyMRaQ6/IZpEw=";
