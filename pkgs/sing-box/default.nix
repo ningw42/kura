@@ -69,17 +69,17 @@ buildGoModule (finalAttrs: {
     "--use-github-releases"
     "--version"
     "unstable"
-    # Pin to the current beta series (1.14.*-beta.*), with a capture group
-    # so nix-update can extract the version from the matched tag.
+    # Pin to the current release candidate series (1.14.*-rc.*), with a
+    # capture group so nix-update can extract the version from the matched tag.
     "--version-regex"
-    "^v?(1\\.14\\.[0-9]+-beta\\.[0-9]+)$"
+    "^v?(1\\.14\\.[0-9]+-rc\\.[0-9]+)$"
     "--post-hook"
     "sync-go-builder:SagerNet/sing-box:v"
   ];
 
   meta = {
     homepage = "https://sing-box.sagernet.org";
-    description = "Universal proxy platform (1.14 beta)";
+    description = "Universal proxy platform (1.14 release candidate)";
     license = lib.licenses.gpl3Plus;
     mainProgram = "sing-box";
   };
