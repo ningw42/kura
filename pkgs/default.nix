@@ -23,6 +23,7 @@ in
     );
   moor = callPackage ./moor { };
   multi-scrobbler = callPackage ./multi-scrobbler { };
+  paseo = callPackage ./paseo { };
   pi-distribution = callPackage ./pi-distribution { };
   router-maestro = callPackage ./router-maestro { };
   sing-box = callPackage ./sing-box { };

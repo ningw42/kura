@@ -17,6 +17,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | litellm | ✅ | |
 | moor | ✅ | ✅ |
 | multi-scrobbler | ✅ | |
+| paseo | ✅ | |
 | pi-distribution | ✅ | ✅ |
 | router-maestro | ✅ | |
 | sing-box | ✅ | |
