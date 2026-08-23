@@ -43,7 +43,7 @@
 
 buildPythonPackage rec {
   pname = "litellm";
-  version = "1.97.0";
+  version = "1.98.0";
   pyproject = true;
 
   src = fetchFromGitHub {
@@ -52,7 +52,7 @@ buildPythonPackage rec {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${version}";
-    hash = "sha256-9nVVXRvtfxntAgSetCy66jfDpunR12DEIoQKAjSZn/4=";
+    hash = "sha256-eMquDSSlBo//huXXiys/F36O18VDjv7U1OUe7DrKhus=";
   };
 
   cargoRoot = "litellm-rust";
