@@ -13,17 +13,17 @@
 
 buildNpmPackage rec {
   pname = "paseo";
-  version = "0.4.0";
+  version = "0.5.1";
 
   src = fetchFromGitHub {
     owner = "getpaseo";
     repo = "paseo";
     rev = "v${version}";
-    hash = "sha256-XV38ZFN7wEDkIIEQR/wchASURl9WGA40hNlg7d0/Hf8=";
+    hash = "sha256-kpnYigMbKbviwbcY6OY8eWvJ5t6RfAPd/dXXAve4s/w=";
   };
 
   nodejs = nodejs_22;
-  npmDepsHash = "sha256-i5PbVUe2Ec+GtghV9IpCJQJ9hcUT5hFhmxneNvoD584=";
+  npmDepsHash = "sha256-o8d/nX0FdM6QB7c/RWpo1USsz8UNmwohSqkS7tflayc=";
 
   # onnxruntime-node's install script downloads from api.nuget.org. Rebuild
   # only node-pty below; the speech runtime ships prebuilt platform packages.
