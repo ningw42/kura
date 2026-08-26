@@ -4,7 +4,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 
 ## What's in here
 
-✅ marks a platform the package is **prebuilt and cached** for; a blank cell means no prebuilt artifact, so supported packages build from source. Every package attribute is exposed for both systems regardless — the table only reflects what's cached (see [Caching](#caching)).
+✅ marks a platform the package is **prebuilt and cached** for; a blank cell means no prebuilt artifact, so supported packages build from source. Every package attribute is exposed for both systems regardless — the table only reflects what's cached (see [Build validation and caching](#build-validation-and-caching)).
 
 | Package | x86_64-linux | aarch64-darwin |
 |---|:-:|:-:|
@@ -53,11 +53,11 @@ See `pkgs/<name>/default.nix` for each derivation.
 }
 ```
 
-The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Every Linux package is cached; on Darwin, only the checkmarked packages above are cached. Other supported Darwin packages build from source unless added to `matrix.nix` (see [Caching](#caching) below).
+The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Every Linux package is cached; on Darwin, only the checkmarked packages above are cached. Other supported Darwin packages build from source unless added to `matrix.nix`.
 
 ## Updating packages
 
-Every updatable package declares its own `passthru.updateScript`. A single command drives the lot:
+Each updatable package declares `passthru.updateScript`; the flake app runs them in parallel:
 
 ```bash
 nix run .#update                            # update every updatable package in parallel
@@ -67,39 +67,15 @@ nix run .#update -- --skip-prompt           # don't ask before starting
 nix run .#update -- --commit                # one commit per package, auto-generated message
 ```
 
-What happens under the hood: `pkgs/_update/runner.nix` wraps nixpkgs' standard `maintainers/scripts/update.nix` and points it at our `packages.<system>` attrset. For each updatable package, it runs `nix-update` (plus any pre/post hooks declared in `default.nix`), updates version + hashes in place, and reports per-package success/failure.
+The app delegates to nixpkgs' update runner, keeps going after individual failures, and prints their logs at the end. Re-run one failure with `nix run .#update -- --package <name> --skip-prompt`.
 
-### A few things to know
+GitHub-backed updates use `GITHUB_TOKEN`; the app imports it from `~/.config/nix/access-tokens.conf`, the same file written by `nix.settings.access-tokens`. Already-current packages are no-ops.
 
-- **Authenticated GitHub API.** The `apps.update` shell wrapper in `flake.nix` reads `~/.config/nix/access-tokens.conf` and exports `GITHUB_TOKEN` so `nix-update` doesn't get rate-limited at 60/hr. Make sure that file exists (it's the same one `nix.settings.access-tokens` writes).
-- **Already-current packages are a no-op.** `nix-update` leaves them unchanged; when pre-hooks are configured, the shared driver checks the version first and skips both the hooks and `nix-update`.
-- **Pre/post hooks.** A few packages need work that `nix-update` can't do on its own: bumping `buildGoNNModule` to match upstream `go.mod`, regenerating an npm lockfile with npm 10, or refreshing missing Yarn Berry hashes. These live as named functions in `pkgs/_update/hooks.sh` and are wired declaratively in each package's `default.nix`.
-
-### When an update fails
-
-The runner uses `--keep-going`, so one failure won't stop the others. Failures are printed at the end with their error log. Common reasons:
-
-- **Upstream switched a lockfile format** (e.g. yarn classic → yarn berry). Fix the package's `default.nix` to use the new tooling; the updater itself is fine.
-- **Upstream introduced a new build dependency.** Add it to the derivation's inputs.
-- **Transient GitHub API hiccup.** Re-run the single failing package: `nix run .#update -- --package <name> --skip-prompt`.
-
-After an update, build the affected package to confirm hashes are correct:
-
-```bash
-nix build .#<pkg-name>
-```
+After an update, verify the affected package with `nix build .#<pkg-name>`. Updater patterns, hooks, and troubleshooting are documented in [AGENTS.md](AGENTS.md#updating-packages).
 
 ## Adding a new package
 
-1. Create `pkgs/<name>/default.nix`.
-2. Wire it into `pkgs/default.nix` (use `callPackage` or `callPythonPackage`).
-3. Add `passthru.updateScript`:
-   - **Simple case**: `nix-update-script { extraArgs = [ "--flake" "--use-github-releases" ]; };`
-   - **Needs custom work**: see existing examples in `pkgs/telepush/default.nix` (post-hook), `pkgs/brave-search-mcp-server/default.nix` (pre-hook), `pkgs/koito/default.nix` (multi-attr + pre/post hooks).
-4. `nix build .#<name>` to verify it builds.
-5. `nix run .#update -- --package <name> --skip-prompt` to verify the updater is a no-op at the current version.
-
-`AGENTS.md` has the full decision tree and a list of available hooks.
+Follow the checklist in [AGENTS.md](AGENTS.md#adding-a-new-package). It covers package wiring, updater selection, the build check, and the updater no-op check.
 
 ## Local development
 
@@ -113,16 +89,14 @@ The first `nix develop` after cloning installs the pre-commit hooks; re-run it a
 
 ## Build validation and caching
 
-Two GitHub Actions workflows share `matrix.nix` and `.github/scripts/evaluate-build-matrix.sh`:
+`matrix.nix` is the source of truth for two selective GitHub Actions workflows:
 
-- **Validate package builds.** `.github/workflows/validate-package-builds.yml` runs on pull requests targeting `master`, then builds the configured package outputs that differ from the pull request's base commit. It configures no writable cache and publishes nothing. Its stable `Package build validation` result job is suitable for a required branch-protection check.
-- **GitHub Actions → Cachix + Attic.** `.github/workflows/build-and-push-to-caches.yml` builds outputs changed since the latest successful run of that workflow and pushes their closures to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
+- **PR validation** compares configured outputs with the pull request's base commit, builds changed outputs without a writable cache, and publishes nothing. Its stable `Package build validation` result is suitable for branch protection.
+- **Cache publishing** compares outputs with the latest successful cache run, then pushes changed closures to Cachix and Attic. Failed or canceled runs therefore cannot leave later changes unpublished.
 
-For validation, a pull request is compared with its base commit. For cache publishing, the baseline is instead the latest successful cache run on the branch: an intermediate failed or canceled run therefore cannot leave changed outputs unpublished. Manual runs and events with no usable baseline build the full matrix.
+Selection compares exact Nix `outPath`s rather than inferring affected packages from source paths. Manual runs and events without a usable baseline build the full matrix.
 
-`matrix.nix` evaluates every configured target in the current and baseline flakes and compares exact Nix `outPath`s; it does not infer affected packages from changed source paths. A target gets a builder when its output path differs, when it did not exist in the baseline flake, or when it is newly included in the platform matrix.
-
-A selective publishing run is still a complete cache checkpoint: an unchanged output path names the same Nix store object covered by an earlier successful run, while every changed path is built and pushed by the current run. This assumes paths reported by successful jobs remain in both caches. If either cache is purged independently of the workflow, use a manual dispatch to repopulate the full matrix.
+Each successful publishing run is a complete cache checkpoint: unchanged paths were covered by an earlier successful run, and changed paths are built and pushed. If either cache is purged independently, use a manual dispatch to repopulate the full matrix.
 
 To consume the public cache, add the substituter to your Nix config:
 
@@ -137,7 +111,7 @@ nix.settings = {
 };
 ```
 
-`matrix.nix` is the source of truth for what validation builds and the cache pipeline publishes per platform. To add a Darwin build for a specific package, add `packages.aarch64-darwin.<name>` to its `includes` list.
+To cache a package on Darwin, add `packages.aarch64-darwin.<name>` to its `includes` list in `matrix.nix`.
 
 ### Setting up the Cachix + Attic pipeline (one-time)
 
@@ -145,7 +119,3 @@ nix.settings = {
 2. Add the Attic server URL and cache name as the `ATTIC_ENDPOINT` and `ATTIC_CACHE` repo secrets.
 3. Mint a push+pull token on the Attic server scoped to that cache and add it as the `ATTIC_TOKEN` repo secret.
 4. Copy the Cachix public key into the `trusted-public-keys` snippet above (and update this README).
-
-## Repo layout
-
-See `AGENTS.md` for a tree and a quick tour. Short version: derivations live in `pkgs/<name>/`, the shared updater library is `pkgs/_update/`, and `flake.nix` ties everything together.

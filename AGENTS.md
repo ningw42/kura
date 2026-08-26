@@ -1,134 +1,106 @@
-# Repository overview for AI agents
+# Repository guidance for AI agents
 
-This is **kura** — a personal Nix flake holding packages that aren't in nixpkgs, or whose nixpkgs version is stale. It exists to back another flake (the owner's nixos/home-manager config) without forking nixpkgs.
+**kura** is a personal Nix flake for packages missing from nixpkgs or lagging upstream. It backs the owner's NixOS/home-manager flake without forking nixpkgs.
 
-## Layout
+## Non-obvious layout
 
-```
-flake.nix              # outputs: packages, overlays, devShells, checks, formatter, apps.update
-shell.nix              # runtime deps for the update runner (NOT for `nix develop`)
-matrix.nix             # CI build list + GHA matrix expansion (source of truth for validation and caching)
-pkgs/
-  default.nix          # callPackage-wires every package into one attrset
-  <pkg-name>/
-    default.nix        # the derivation
-    [package-lock.json | other lockfiles]
-  _update/             # shared updater library (see "Updating packages")
-    run.sh             # the shared driver
-    hooks.sh           # named hook functions (sync-go-builder, regen-npm-lockfile)
-    runner.nix         # wraps nixpkgs' maintainers/scripts/update.nix
-treefmt.nix            # nixfmt + yamlfmt config
-git-hooks.nix          # pre-commit hooks (treefmt, convco, etc.)
-.github/scripts/
-  evaluate-build-matrix.sh      # shared current-vs-baseline matrix evaluator
-.github/workflows/
-  validate-package-builds.yml   # PR selective builds; never publishes
-  build-and-push-to-caches.yml  # master selective builds; pushes to Cachix + Attic
-```
+- `flake.nix` defines packages, the pointer overlay, checks, dev shells, and `apps.update`.
+- `pkgs/default.nix` wires every kura package against kura's pinned nixpkgs.
+- `pkgs/_update/` contains the shared updater driver, hook implementations, and nixpkgs update-runner wrapper.
+- `matrix.nix` is the source of truth for CI validation and cache publishing on each platform.
+- `shell.nix` supplies runtime dependencies to nixpkgs' update runner; humans use `nix develop` instead.
 
-## Building a package
+## Overlay contract
+
+`overlays.default` exposes packages under `pkgs.kura` and points directly to `self.packages.${system}`. This preserves the exact cached store paths and avoids placing kura package names in the consumer's nixpkgs fixpoint.
+
+Before changing the overlay, read its rationale comment in `flake.nix`. Kura packages cannot compose through a consumer's `final` or `prev`; wire dependencies between kura packages explicitly in `pkgs/default.nix`.
+
+## Package workflow
 
 ```bash
-nix build .#<pkg-name>            # builds the derivation
-nix flake check --no-build        # evaluates flake; does not build
+nix build .#<pkg-name>       # build one package
+nix flake check --no-build   # evaluate the flake without building packages
 ```
 
-`packages.<system>` is exposed for `x86_64-linux` and `aarch64-darwin`. Only the Linux set is built, validated, and cached by default; Darwin attrs evaluate but aren't included in CI unless added to `matrix.nix`.
+Package attributes are exposed for `x86_64-linux` and `aarch64-darwin`. Linux packages are built, validated, and cached by default. To opt a Darwin package into CI and caching, add `packages.aarch64-darwin.<name>` to `matrix.nix`.
 
-## Overlay shape
+### Adding a new package
 
-`overlays.default` exposes every kura package under a single `kura` attribute (`pkgs.kura.fzf`, `pkgs.kura.skim`, …) rather than merging them in at top level. It's a **pointer overlay**: the values are `self.packages.${system}` verbatim, so consumers get the exact cached store path regardless of their own nixpkgs pin.
+1. Create `pkgs/<name>/default.nix`.
+2. Wire it into `pkgs/default.nix` with `callPackage` or `callPythonPackage`.
+3. Select and configure `passthru.updateScript` using the updater rules below.
+4. Run `nix build .#<name>`.
+5. Run `nix run .#update -- --package <name> --skip-prompt`.
 
-It nests under `kura` on purpose. Overriding a top-level name (e.g. `fzf`) would join the consumer's fixpoint, so every nixpkgs package that resolves that name through `callPackage` — `zoxide` bakes `fzf`'s store path into its binary, for one — would re-evaluate, change hash, and miss `cache.nixos.org`. Nesting keeps the rest of nixpkgs bit-identical and cached; consumers opt into a kura build by name. The full rationale (and tradeoffs) live in the comment on `overlays.default` in `flake.nix`.
-
-Consequence for package authors: kura packages can't compose through the consumer's `final`/`prev`. If one kura package needs another, wire it inside `pkgs/default.nix` directly (the `pkgs` arg there is kura's own pinned nixpkgs — see `pkgsFor` in `flake.nix`).
+The package is complete when the build succeeds and the updater produces either a clean no-op at the current version or a sensible version update.
 
 ## Updating packages
 
-Every updatable package declares `passthru.updateScript`. The entry point is a flake app:
+Every updatable package declares `passthru.updateScript`. The flake app wraps nixpkgs' `maintainers/scripts/update.nix` and scopes it to kura packages:
 
 ```bash
-nix run .#update                            # walk all packages, update in parallel
-nix run .#update -- --package <name>        # one package
-nix run .#update -- --skip-prompt           # don't ask for confirmation
-nix run .#update -- --commit                # produce one commit per package
+nix run .#update                            # update all packages in parallel
+nix run .#update -- --package <name>        # update one package
+nix run .#update -- --skip-prompt           # skip confirmation
+nix run .#update -- --commit                # commit each package separately
 ```
 
-The app wraps nixpkgs' `maintainers/scripts/update.nix` via `pkgs/_update/runner.nix`, which scopes the walk to our packages via a `kuraPackages` overlay attr. `shell.nix` at the repo root provides the runtime tools the runner injects (`nix-update`, `jq`, `curl`, `prefetch-npm-deps`, `nodejs_22`, etc.) — humans should *not* use `shell.nix`; `nix develop` drops you into the proper devShell.
+### Choose an update pattern
 
-### Update pattern decision tree
+1. **Plain GitHub release, no custom work** — use:
 
-When wiring `passthru.updateScript` on a package, pick the simplest pattern that works:
+   ```nix
+   nix-update-script {
+     extraArgs = [ "--flake" "--use-github-releases" ];
+   }
+   ```
 
-1. **Plain GitHub release, no custom work** → `nix-update-script { extraArgs = [ "--flake" "--use-github-releases" ]; }`. Pass extra nix-update flags through `extraArgs` (e.g. `--version-regex`). Examples: `skim`, `router-maestro`, `litellm`.
-2. **Needs pre- or post-update steps** → use the shared driver:
+   Pass other `nix-update` flags, such as `--version-regex`, through `extraArgs`.
+
+2. **Pre- or post-update work** — use the shared driver:
+
    ```nix
    passthru.updateScript = [
      ../_update/run.sh
      "--attr" "<attrpath>"           # repeatable; defaults to UPDATE_NIX_ATTR_PATH
      "--use-github-releases"         # forwarded to nix-update
-     "--pre-hook"  "<hook-spec>"     # repeatable; runs before nix-update
-     "--post-hook" "<hook-spec>"     # repeatable; runs after nix-update
+     "--pre-hook" "<hook-spec>"      # repeatable driver flag
+     "--post-hook" "<hook-spec>"     # repeatable driver flag
    ];
    ```
-   `--pre-hook` and `--post-hook` are **driver flags**, not `nix-update` flags. Hook spec format: `name:arg1:arg2[:arg3...]`, parsed in `pkgs/_update/run.sh` and dispatched to functions in `pkgs/_update/hooks.sh`.
 
-### Hooks available today (`pkgs/_update/hooks.sh`)
+   Hook specs use `name:arg1:arg2[:arg3...]`. When selecting, modifying, or adding a hook, read `pkgs/_update/hooks.sh` and `_run_hook` in `pkgs/_update/run.sh`; they are the source of truth for available names, arguments, and behavior.
 
-| name | spec | what it does | used by |
-|---|---|---|---|
-| `sync-go-builder` | `sync-go-builder:<owner>/<repo>:<tag-prefix>` | Read upstream `go.mod`, bump pinned `buildGoNNModule`. No-op if `default.nix` uses unpinned `buildGoModule`. | telepush, sing-box, koito |
-| `regen-npm-lockfile` | `regen-npm-lockfile:<owner>/<repo>:<tag-prefix>[:<flags>]` | Clone the new tag, strip `scripts`, pin direct deps, regenerate `package-lock.json` with npm 10. Pre-hook only. Tolerates upstream repos with no lockfile (pin step no-ops). `<flags>` (substring-matched): `legacy-peer-deps` → pass `--legacy-peer-deps`; `omit-dev` → drop `devDependencies` for a production-only lockfile (matching `default.nix` must strip them in `postPatch` so `npm ci` stays in sync). | brave-search-mcp-server, multi-scrobbler |
-| `regen-yarn-berry-missing-hashes` | `regen-yarn-berry-missing-hashes:<owner>/<repo>:<tag-prefix>:<path-to-yarn.lock>` | Fetch upstream `yarn.lock` and regenerate `missing-hashes.json` via `yarn-berry-fetcher missing-hashes`. Pre-hook only — must run before `nix-update` because the `offlineCache` output hash depends on both files. | koito |
+### Multi-attribute packages
 
-To add a new hook: write the function in `pkgs/_update/hooks.sh` (reads `$KURA_PKG_DIR` and `$KURA_VERSION` from env), then add a `case` branch in `_run_hook` in `pkgs/_update/run.sh`.
-
-### Multi-attr packages (e.g. koito)
-
-When one package has multiple sub-derivations with their own hashes (backend + frontend, native + electron, etc.), pass `--attr` multiple times. The driver runs `nix-update` once per attr, pinning subsequent calls to the version the first one resolved:
+Pass `--attr` more than once when a package has sub-derivations with separate hashes. The driver resolves the version from the first attribute and pins later updates to it:
 
 ```nix
 passthru.updateScript = [
   ../_update/run.sh
-  "--attr" "koito.backend"     # shared version + src.hash + vendorHash
-  "--attr" "koito.frontend"    # yarnOfflineCache.outputHash (nix-update native)
+  "--attr" "koito.backend"
+  "--attr" "koito.frontend"
   "--use-github-releases"
   "--post-hook" "sync-go-builder:gabehf/koito:v"
 ];
 ```
 
-Note: `nix-update` natively handles `yarnOfflineCache`, `npmDeps`, `pnpmDeps`, `cargoHash`, `vendorHash`, `mvnHash`, etc. — no custom hook needed. Just point `--attr` at the attribute that exposes the hash. See `nix_update/eval.nix` upstream for the full list.
+`nix-update` natively handles common dependency hashes, including `yarnOfflineCache`, `npmDeps`, `pnpmDeps`, `cargoHash`, `vendorHash`, and `mvnHash`. Point `--attr` at the derivation exposing the hash before considering a custom hook.
 
-### Suppressing the runner for a package
+### Suppress an inherited updater
 
-Some derivations (e.g. `buildHomeAssistantComponent`) inherit a default `passthru.updateScript` that doesn't work for our flake, *or* have a `pname` containing characters the runner chokes on (e.g. `<owner>/<domain>` for HA components — the runner tries to write `<pname>.log` and fails on the slash). Override to `null`:
-
-```nix
-passthru.updateScript = null;
-```
-
-This skips the package entirely. The runner filters out null `updateScript`s before scheduling.
-
-## Adding a new package
-
-1. `mkdir pkgs/<name>` and write `pkgs/<name>/default.nix`.
-2. Add an entry to `pkgs/default.nix` (use `callPackage` or `callPythonPackage` as appropriate).
-3. Decide an update strategy and wire `passthru.updateScript` per the decision tree above.
-4. Run `nix build .#<name>` to make sure it builds.
-5. Run `nix run .#update -- --package <name> --skip-prompt` to make sure the updater is a clean no-op (or a sensible update).
+Set `passthru.updateScript = null` when a derivation inherits an updater incompatible with this flake or has an unsafe `pname` such as `<owner>/<domain>`; the runner uses `pname` for log filenames. Null scripts are excluded from scheduling.
 
 ## Conventions
 
-- **Commit messages**: conventional commits, enforced by `convco` in pre-commit hooks. Common types here: `feat(<pkg>)`, `build(<pkg>)`, `refactor(...)`, `chore(...)`. Scope is usually the package name or a subsystem (`flake`, `update`, `gitignore`). See recent `git log --oneline` for the local idiom.
-- **No Co-Authored-By trailers.** The owner removes them when amending — don't add them.
-- **Formatting**: `nix fmt` runs treefmt (nixfmt + yamlfmt). Also runs via pre-commit. If pre-commit reformats during a commit, just re-stage and re-commit.
-- **Single-platform default**: only `x86_64-linux` is built by default. `aarch64-darwin` is supported for evaluation but only specific packages get validated and cached. To opt a Darwin package in, add `packages.aarch64-darwin.<name>` to `matrix.nix` (`includes`), which both GitHub Actions build workflows read.
-- **Source pinning — `rev` vs `tag`**: pin `fetchFromGitHub` sources with `rev = "v${version}"`, **not** `tag = "v${version}"`, even though `tag` is the more modern/declarative nixpkgs idiom. Reason: `fetchFromGitHub` normalizes `tag` to `src.rev = "refs/tags/v…"`, but `nix-update` discovers the upstream version as the *bare* tag (`v…`). The two never compare equal, so nix-update concludes the rev "changed" on **every** run and re-fetches all dependency hashes (`cargoHash`/`vendorHash`/`npmDeps`/`pnpmDeps`/…) even when the version is unchanged — turning a no-op update into a full re-vendor (≈10 min for a large cargo tree). Using `rev` keeps both sides equal, so hashes are only recomputed on a real version bump. Consequences: with `rev`, `src.tag` is `null` and `src.rev` is the bare tag — don't reference `src.tag` in `meta.changelog`/`ldflags` (use `"v${version}"`). The source `hash` is content-addressed and identical either way, so switching never changes the fetched output. This is not fixable by bumping `nix-update`: as of upstream master the comparison is still `old_rev_tag = package.rev or package.tag` (prefers the `refs/tags/` rev), so the only ways to keep `tag` would be patching nix-update (flip it to `package.tag or package.rev`) or a custom version-equality pre-check — both more machinery than just using `rev`.
-- **Avoid creating new docs files** unless explicitly asked. This file (AGENTS.md) and README.md are the canonical entry points; CLAUDE.md is a one-line shim that includes this file.
+- **Commits:** use conventional commits. Follow recent `git log --oneline` for local types and scopes. Do not add `Co-Authored-By` trailers.
+- **Formatting:** run `nix fmt` after edits; it applies nixfmt and yamlfmt. If a commit hook reformats files, re-stage them before committing again.
+- **GitHub source pins:** for version tags, use `rev = "v${version}"` in `fetchFromGitHub`, not `tag`. `tag` normalizes to `refs/tags/v…` while `nix-update` discovers the bare tag, causing no-op updates to recompute dependency hashes. With `rev`, `src.tag` is null; use `"v${version}"` directly in changelogs and linker flags.
+- **Documentation:** keep `README.md` and this file as the canonical entry points. Create another documentation file only when explicitly requested; `CLAUDE.md` remains a one-line shim to this file.
 
-## Pitfalls observed
+## Updater pitfalls
 
-- `nix-update` reads `GITHUB_TOKEN` from env but does **not** read `~/.config/nix/access-tokens.conf` (only `nix-prefetch-github` does). The `apps.update` shell wrapper in `flake.nix` bridges the file to the env var before invoking the runner, so every downstream `nix-update` call (both shared-driver and plain `nix-update-script` ones) inherits it. Without that bridge, version-discovery hits 60/hr unauthenticated; with it, 5000/hr.
-- `pkgs/_update/run.sh` lives in the nix store at runtime; `$BASH_SOURCE` points there. The flake root is `$PWD` (the runner cd's there before invoking).
-- The runner leaves `<pname>.log` files in the cwd; `.gitignore` already covers `*.log`.
-- The nixpkgs runner wraps every invocation in `nix-shell ${nixpkgs_root}/shell.nix --run …`. That's why `shell.nix` at the repo root is required, even though humans use `nix develop` instead.
+- `nix-update` reads `GITHUB_TOKEN`, not `~/.config/nix/access-tokens.conf`. The `apps.update` wrapper in `flake.nix` bridges the Nix access token into the environment.
+- `pkgs/_update/run.sh` executes from the Nix store, so `$BASH_SOURCE` does not locate the checkout. The runner changes to the flake root first; use `$PWD`.
+- The nixpkgs runner invokes jobs through `nix-shell ${nixpkgs_root}/shell.nix`. Keep the repository's `shell.nix` even though interactive development uses `nix develop`.
