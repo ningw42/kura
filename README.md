@@ -115,10 +115,10 @@ The first `nix develop` after cloning installs the pre-commit hooks; re-run it a
 
 Two GitHub Actions workflows share `matrix.nix` and `.github/scripts/evaluate-build-matrix.sh`:
 
-- **Validate package builds.** `.github/workflows/validate-package-builds.yml` runs on pushes to `master` and pull requests targeting `master`, then builds the configured package outputs that differ from the event baseline. It configures no writable cache and publishes nothing. Its stable `Package build validation` result job is suitable for a required branch-protection check.
+- **Validate package builds.** `.github/workflows/validate-package-builds.yml` runs on pull requests targeting `master`, then builds the configured package outputs that differ from the pull request's base commit. It configures no writable cache and publishes nothing. Its stable `Package build validation` result job is suitable for a required branch-protection check.
 - **GitHub Actions → Cachix + Attic.** `.github/workflows/build-and-push-to-caches.yml` builds outputs changed since the latest successful run of that workflow and pushes their closures to `kura.cachix.org` and a self-hosted Attic cache in parallel. It runs when relevant build inputs change on `master`, and on manual dispatch.
 
-For validation, a pull request is compared with its base commit and a push with its pre-push commit. For cache publishing, the baseline is instead the latest successful cache run on the branch: an intermediate failed or canceled run therefore cannot leave changed outputs unpublished. Manual runs and events with no usable baseline build the full matrix.
+For validation, a pull request is compared with its base commit. For cache publishing, the baseline is instead the latest successful cache run on the branch: an intermediate failed or canceled run therefore cannot leave changed outputs unpublished. Manual runs and events with no usable baseline build the full matrix.
 
 `matrix.nix` evaluates every configured target in the current and baseline flakes and compares exact Nix `outPath`s; it does not infer affected packages from changed source paths. A target gets a builder when its output path differs, when it did not exist in the baseline flake, or when it is newly included in the platform matrix.
 

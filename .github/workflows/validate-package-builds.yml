@@ -1,15 +1,12 @@
 name: Validate package builds
-# Builds package outputs changed by pushes to master and pull requests targeting
-# master, using matrix.nix as the platform/package allowlist. This workflow
-# deliberately configures no writable cache: publishing remains the
-# responsibility of the master-only Build & Push to Caches workflow.
+# Builds package outputs changed by pull requests targeting master, using
+# matrix.nix as the platform/package allowlist. This workflow deliberately
+# configures no writable cache: publishing remains the responsibility of the
+# master-only Build & Push to Caches workflow.
 
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - master
-  push:
     branches:
       - master
 concurrency:
@@ -35,15 +32,14 @@ jobs:
         id: matrix
         env:
           PR_BASELINE_SHA: ${{ github.event.pull_request.base.sha }}
-          PUSH_BASELINE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
 
-          case "$GITHUB_EVENT_NAME" in
-            pull_request) baseline_sha="$PR_BASELINE_SHA" ;;
-            push) baseline_sha="$PUSH_BASELINE_SHA" ;;
-            *) baseline_sha="" ;;
-          esac
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            baseline_sha="$PR_BASELINE_SHA"
+          else
+            baseline_sha=""
+          fi
 
           matrix_json=$(./.github/scripts/evaluate-build-matrix.sh "$baseline_sha")
           echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"

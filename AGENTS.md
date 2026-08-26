@@ -22,7 +22,7 @@ git-hooks.nix          # pre-commit hooks (treefmt, convco, etc.)
 .github/scripts/
   evaluate-build-matrix.sh      # shared current-vs-baseline matrix evaluator
 .github/workflows/
-  validate-package-builds.yml   # master push/PR selective builds; never publishes
+  validate-package-builds.yml   # PR selective builds; never publishes
   build-and-push-to-caches.yml  # master selective builds; pushes to Cachix + Attic
 ```
 
