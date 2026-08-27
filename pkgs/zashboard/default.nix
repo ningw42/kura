@@ -5,7 +5,6 @@
   pnpm_10,
   fetchPnpmDeps,
   pnpmConfigHook,
-  nix-update-script,
 }:
 let
   pnpm = pnpm_10;
@@ -55,12 +54,9 @@ buildNpmPackage (finalAttrs: {
     runHook postInstall
   '';
 
-  passthru.updateScript = nix-update-script {
-    extraArgs = [
-      "--flake"
-      "--use-github-releases"
-    ];
-  };
+  # Zashboard releases are updated manually; exclude this package from the
+  # automatic update runner.
+  passthru.updateScript = null;
 
   meta = {
     description = "Dashboard Using Clash API";
