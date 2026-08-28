@@ -23,6 +23,7 @@ python3Packages.buildPythonApplication rec {
   dependencies = with python3Packages; [
     typer
     rich
+    questionary
     fastapi
     uvicorn
     httpx
