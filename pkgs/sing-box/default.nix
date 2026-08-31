@@ -8,7 +8,7 @@
 
 buildGoModule (finalAttrs: {
   pname = "sing-box";
-  version = "1.14.0-rc.4";
+  version = "1.14.0";
 
   src = fetchFromGitHub {
     owner = "SagerNet";
@@ -16,10 +16,10 @@ buildGoModule (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-9ybFSCPCGCvanWgRjLFtb/tejz/gSlo/R9E754JDSDM=";
+    hash = "sha256-1v9bgM2H439ZoSkomv5dmT5SNrkuyOJ1iFFPlYPsW/k=";
   };
 
-  vendorHash = "sha256-RWCCScJVaKTmNrBiGips6QWz6EFTBXXMNsi+UqNvnjU=";
+  vendorHash = "sha256-Bl73SkmnOyh5kULctDaxcOzXsYXRY2DOt80ME2+lBJo=";
 
   tags = [
     "with_gvisor"
@@ -67,19 +67,13 @@ buildGoModule (finalAttrs: {
     "--attr"
     "sing-box"
     "--use-github-releases"
-    "--version"
-    "unstable"
-    # Pin to the current release candidate series (1.14.*-rc.*), with a
-    # capture group so nix-update can extract the version from the matched tag.
-    "--version-regex"
-    "^v?(1\\.14\\.[0-9]+-rc\\.[0-9]+)$"
     "--post-hook"
     "sync-go-builder:SagerNet/sing-box:v"
   ];
 
   meta = {
     homepage = "https://sing-box.sagernet.org";
-    description = "Universal proxy platform (1.14 release candidate)";
+    description = "Universal proxy platform";
     license = lib.licenses.gpl3Plus;
     mainProgram = "sing-box";
   };
