@@ -94,10 +94,20 @@
         import ./pkgs { inherit pkgs; }
       );
 
-      checks = forSupportedSystems (system: {
-        formatting = treefmtEval.${system}.config.build.check self;
-        pre-commit-check = gitHooksCheck.${system};
-      });
+      checks = forSupportedSystems (
+        system:
+        let
+          pkgs = pkgsFor.${system};
+        in
+        {
+          formatting = treefmtEval.${system}.config.build.check self;
+          pre-commit-check = gitHooksCheck.${system};
+          updater = pkgs.runCommand "kura-updater-tests" { } ''
+            KURA_SOURCE_ROOT=${./.} ${pkgs.bash}/bin/bash ${./pkgs/_update/tests.sh}
+            touch "$out"
+          '';
+        }
+      );
 
       formatter = forSupportedSystems (system: treefmtEval.${system}.config.build.wrapper);
 

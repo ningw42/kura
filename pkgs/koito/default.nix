@@ -137,7 +137,7 @@ stdenvNoCC.mkDerivation {
       # hash depends on both files.
       "--pre-hook"
       "regen-yarn-berry-missing-hashes:gabehf/koito:v:client/yarn.lock"
-      "--post-hook"
+      "--pre-hook"
       "sync-go-builder:gabehf/koito:v"
     ];
   };

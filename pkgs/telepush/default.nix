@@ -21,7 +21,7 @@ buildGo126Module rec {
     "--attr"
     "telepush"
     "--use-github-releases"
-    "--post-hook"
+    "--pre-hook"
     "sync-go-builder:muety/telepush:"
   ];
 }

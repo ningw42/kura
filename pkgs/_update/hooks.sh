@@ -8,7 +8,9 @@
 
 # sync-go-builder:<owner>/<repo>:<tag-prefix>
 # Read upstream go.mod and bump the pinned `buildGoNNModule` in default.nix.
-# Unpinned `buildGoModule` is left alone (intentional: roll forward with nixpkgs).
+# Run this as a pre-hook so nix-update uses the required Go version when it
+# refreshes dependency hashes. Unpinned `buildGoModule` is left alone
+# (intentional: roll forward with nixpkgs).
 sync_go_builder() {
   local owner_repo="$1" tag_prefix="${2:-}"
   local file="$KURA_PKG_DIR/default.nix"
@@ -37,8 +39,16 @@ sync_go_builder() {
   if [[ "$old_builder" == "$new_builder" ]]; then
     return 0
   fi
-  if ! nix eval --impure --expr "(import <nixpkgs> {}).${new_builder}.name" >/dev/null 2>&1; then
-    echo "[sync-go-builder] ERROR: $new_builder is not available in nixpkgs." >&2
+  local builder_available
+  builder_available=$(nix eval --impure --expr "
+    let
+      flake = builtins.getFlake (toString ./.);
+      pkgs = import flake.inputs.nixpkgs { system = builtins.currentSystem; };
+    in
+      builtins.hasAttr \"${new_builder}\" pkgs
+  " 2>/dev/null || true)
+  if [[ "$builder_available" != "true" ]]; then
+    echo "[sync-go-builder] ERROR: $new_builder is not available in pinned nixpkgs." >&2
     return 1
   fi
   echo "[sync-go-builder] Switching: $old_builder -> $new_builder"

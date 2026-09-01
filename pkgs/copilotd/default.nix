@@ -1,18 +1,18 @@
 {
-  buildGo126Module,
+  buildGo127Module,
   fetchFromGitHub,
   versionCheckHook,
 }:
 
-buildGo126Module (finalAttrs: {
+buildGo127Module (finalAttrs: {
   pname = "copilotd";
-  version = "0.5.0";
+  version = "0.6.0";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "copilotd";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-oO9TxQOjRMIEAy+0hQTucl/vzYnb1ic9tvrLgR/1ac4=";
+    hash = "sha256-uQO7/T+2mT+ATJL/EXcT1vA4K3EzuLzagPrxSHTClrI=";
   };
 
   vendorHash = "sha256-xYhRW3RTBuBWvfNMapdlG8RzDjNI4/L4nK5Zagi/Wgo=";
@@ -34,7 +34,7 @@ buildGo126Module (finalAttrs: {
     "--attr"
     "copilotd"
     "--use-github-releases"
-    "--post-hook"
+    "--pre-hook"
     "sync-go-builder:ningw42/copilotd:v"
   ];
 

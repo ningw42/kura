@@ -39,7 +39,8 @@ jobs:
       - name: Run updater
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: nix run .#update -- --skip-prompt
+        # Stop before creating a PR rather than commit a failed package's partial edits.
+        run: nix run .#update -- --skip-prompt --no-keep-going
       # Some hooks (e.g. regen-npm-lockfile) regenerate files that don't
       # match treefmt style; this keeps the PR diff clean.
       - name: Format

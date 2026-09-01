@@ -82,7 +82,7 @@ passthru.updateScript = [
   "--attr" "koito.backend"
   "--attr" "koito.frontend"
   "--use-github-releases"
-  "--post-hook" "sync-go-builder:gabehf/koito:v"
+  "--pre-hook" "sync-go-builder:gabehf/koito:v"
 ];
 ```
 

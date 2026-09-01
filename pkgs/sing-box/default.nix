@@ -67,7 +67,7 @@ buildGoModule (finalAttrs: {
     "--attr"
     "sing-box"
     "--use-github-releases"
-    "--post-hook"
+    "--pre-hook"
     "sync-go-builder:SagerNet/sing-box:v"
   ];
 
