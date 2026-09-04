@@ -24,7 +24,6 @@ in
   moor = callPackage ./moor { };
   multi-scrobbler = callPackage ./multi-scrobbler { };
   pi-distribution = callPackage ./pi-distribution { };
-  router-maestro = callPackage ./router-maestro { };
   sing-box = callPackage ./sing-box { };
   skim = callPackage ./skim { };
   smartthings-soundbar = callPythonPackage ./smartthings-soundbar { };

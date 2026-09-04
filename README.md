@@ -18,7 +18,6 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | moor | ✅ | ✅ |
 | multi-scrobbler | ✅ | |
 | pi-distribution | ✅ | ✅ |
-| router-maestro | ✅ | |
 | sing-box | ✅ | |
 | skim | ✅ | ✅ |
 | smartthings-soundbar | ✅ | |
