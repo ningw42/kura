@@ -6,13 +6,13 @@
 
 buildGo127Module (finalAttrs: {
   pname = "copilotd";
-  version = "0.6.1";
+  version = "0.6.2";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "copilotd";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-+wdwQLw2YqJyMPOjBmJlG+Aa4F8SyBgwl++XBa+dG2o=";
+    hash = "sha256-fNhXHdcN8qTJH8m9SCOVWn3Vedel6V64liDXEz6mqRo=";
   };
 
   vendorHash = "sha256-xYhRW3RTBuBWvfNMapdlG8RzDjNI4/L4nK5Zagi/Wgo=";
