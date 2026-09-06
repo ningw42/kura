@@ -7,13 +7,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.09.3";
+  version = "26.09.5";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-h1K5J99hv3KtP8ILGLiSI/vGTY6yfj4Vd6bXptr9TaA=";
+    hash = "sha256-Subm7VO+15rSDfBJhj8re3FICWBKTRPXWXpeEkwiEB8=";
   };
 
   npmDepsFetcherVersion = 2;
