@@ -16,8 +16,21 @@ buildNpmPackage (finalAttrs: {
     hash = "sha256-yf1Ar0IFcm8JxqsD6dZPE1ny95CN1xL2VWNR3drpROY=";
   };
 
+  # npm follows this short pkg.pr.new dependency edge instead of reusing the
+  # canonical resolved entry, which fetchNpmDeps caches for offline installs.
+  # Remove this workaround once pi-mcp-adapter's MCP client dependency no
+  # longer uses the repository-style URL below (for example, after returning
+  # to a registry release), then refresh npmDepsHash and verify the package
+  # build. --replace-fail deliberately flags an upstream lockfile change.
+  postPatch = ''
+    substituteInPlace package-lock.json \
+      --replace-fail \
+      "https://pkg.pr.new/modelcontextprotocol/typescript-sdk/@modelcontextprotocol/core@3b205e7" \
+      "https://pkg.pr.new/@modelcontextprotocol/core@3b205e7dd2f997b6a87e479e36421f7eaa2058e0"
+  '';
+
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-uL3cn0F+OLevBVnLMdAiPkwzXOiXFpOlKQtR/FhQ4qo=";
+  npmDepsHash = "sha256-krmSPqbXgrliGlonqwitVO7zKqgSifxXcpCJIh6S4dI=";
 
   # The package ships TypeScript extensions directly for Pi to load.
   dontNpmBuild = true;
