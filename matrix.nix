@@ -24,6 +24,7 @@ let
     "packages.aarch64-darwin.fzf"
     "packages.aarch64-darwin.lazygit"
     "packages.aarch64-darwin.moor"
+    "packages.aarch64-darwin.moshi-hook"
     "packages.aarch64-darwin.pi-distribution"
     "packages.aarch64-darwin.skim"
   ];

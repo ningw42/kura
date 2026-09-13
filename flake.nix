@@ -31,7 +31,13 @@
       # checks, devShells, ...) against kura's *own* pinned nixpkgs, so the
       # cached store paths exposed via `overlays.default` stay
       # consumer-agnostic.
-      pkgsFor = forSupportedSystems (system: import nixpkgs { inherit system; });
+      pkgsFor = forSupportedSystems (
+        system:
+        import nixpkgs {
+          inherit system;
+          config.allowUnfreePredicate = pkg: nixpkgs.lib.getName pkg == "moshi-hook";
+        }
+      );
 
       treefmtEval = forSupportedSystems (
         system: treefmt-nix.lib.evalModule pkgsFor.${system} ./treefmt.nix
