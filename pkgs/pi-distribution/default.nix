@@ -7,13 +7,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.09.13";
+  version = "26.09.14";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-PCuevvo7PgFiwBUARRLP8wuhlU9yHGw7fMuhGsK4i40=";
+    hash = "sha256-TvdvDKbRNkxYQ6AbWA2oV8MtXq9I2FMFhjnIcfGU2kQ=";
   };
 
   # npm follows this short pkg.pr.new dependency edge instead of reusing the
@@ -47,17 +47,10 @@ buildNpmPackage (finalAttrs: {
   doCheck = true;
   # Runtime-coupled tests use the separately locked smoke environment, which
   # is intentionally excluded from this package's production dependency closure.
-  # v26.09.13 predates the upstream production-only test command; retain its
-  # equivalent fallback until the package pin advances.
   checkPhase = ''
     runHook preCheck
 
-    if node -e 'process.exit("test:package" in require("./package.json").scripts ? 0 : 1)'; then
-      npm run test:package
-    else
-      node --test tests/validate-npm-update.test.mjs
-      npm run check
-    fi
+    npm run test:package
 
     runHook postCheck
   '';
