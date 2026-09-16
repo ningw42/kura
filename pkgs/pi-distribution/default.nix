@@ -7,13 +7,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.09.12";
+  version = "26.09.13";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-WPeGNE0srqrbo8XFa8++tG1XHo3Emjt3TKk/meZ6Mnw=";
+    hash = "sha256-PCuevvo7PgFiwBUARRLP8wuhlU9yHGw7fMuhGsK4i40=";
   };
 
   # npm follows this short pkg.pr.new dependency edge instead of reusing the
