@@ -45,10 +45,12 @@ buildNpmPackage (finalAttrs: {
   ];
 
   doCheck = true;
+  # Runtime-coupled tests use the separately locked smoke environment, which
+  # is intentionally excluded from this package's production dependency closure.
   checkPhase = ''
     runHook preCheck
 
-    npm test
+    npm run check
 
     runHook postCheck
   '';
