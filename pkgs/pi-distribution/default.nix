@@ -47,12 +47,17 @@ buildNpmPackage (finalAttrs: {
   doCheck = true;
   # Runtime-coupled tests use the separately locked smoke environment, which
   # is intentionally excluded from this package's production dependency closure.
-  # Keep dependency-free tests and package validation in this offline build.
+  # v26.09.13 predates the upstream production-only test command; retain its
+  # equivalent fallback until the package pin advances.
   checkPhase = ''
     runHook preCheck
 
-    node --test tests/validate-npm-update.test.mjs
-    npm run check
+    if node -e 'process.exit("test:package" in require("./package.json").scripts ? 0 : 1)'; then
+      npm run test:package
+    else
+      node --test tests/validate-npm-update.test.mjs
+      npm run check
+    fi
 
     runHook postCheck
   '';
