@@ -1,7 +1,7 @@
 {
   lib,
   stdenvNoCC,
-  buildGo125Module,
+  buildGoModule,
   fetchFromGitHub,
   yarn-berry_4,
   nodejs,
@@ -66,7 +66,7 @@ let
     dontFixup = true;
   });
 
-  backend = buildGo125Module {
+  backend = buildGoModule {
     pname = "${pname}-bin";
     inherit version src;
 
@@ -137,8 +137,6 @@ stdenvNoCC.mkDerivation {
       # hash depends on both files.
       "--pre-hook"
       "regen-yarn-berry-missing-hashes:gabehf/koito:v:client/yarn.lock"
-      "--pre-hook"
-      "sync-go-builder:gabehf/koito:v"
     ];
   };
 
