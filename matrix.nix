@@ -22,6 +22,7 @@ let
   includes = [
     "packages.x86_64-linux.*"
     "packages.aarch64-darwin.fzf"
+    "packages.aarch64-darwin.herdr"
     "packages.aarch64-darwin.lazygit"
     "packages.aarch64-darwin.moor"
     "packages.aarch64-darwin.moshi-hook"
