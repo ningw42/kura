@@ -12,6 +12,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | clash-premium | ✅ | |
 | copilotd | ✅ | |
 | fzf | ✅ | ✅ |
+| herdr | ✅ | ✅ |
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
 | litellm | ✅ | |

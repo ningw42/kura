@@ -9,6 +9,7 @@ in
   clash-premium = callPackage ./clash-premium { };
   copilotd = callPackage ./copilotd { };
   fzf = callPackage ./fzf { };
+  herdr = callPackage ./herdr { };
   koito = callPackage ./koito { };
   lazygit = callPackage ./lazygit { };
   litellm =
