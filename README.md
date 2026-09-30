@@ -91,12 +91,12 @@ The first `nix develop` after cloning installs the pre-commit hooks; re-run it a
 
 `matrix.nix` is the source of truth for two selective GitHub Actions workflows:
 
-- **PR validation** compares configured outputs with the pull request's base commit, builds changed outputs without a writable cache, and publishes nothing. Its stable `Package build validation` result is suitable for branch protection.
-- **Cache publishing** compares outputs with the latest successful cache run, then pushes changed closures to Cachix and Attic. Failed or canceled runs therefore cannot leave later changes unpublished.
+- **PR validation** compares configured outputs with the pull request's base commit and builds changed outputs. Same-repository PRs whose author association is `OWNER`, `MEMBER`, or `COLLABORATOR` enable Cachix and Attic's built-in uploads. Fork PRs, other authors, and manual validation runs use public Cachix read-only and receive no cache-write credentials. Its stable `Package build validation` result is suitable for branch protection.
+- **Cache publishing** runs on master pushes and manual dispatches, compares outputs with the latest successful master publishing run, and enables built-in uploads to both caches. Outputs already published by PR validation are normally substituted rather than rebuilt; merge-time changes are still built. Failed or canceled builds remain eligible for subsequent runs.
 
 Selection compares exact Nix `outPath`s rather than inferring affected packages from source paths. Manual runs and events without a usable baseline build the full matrix.
 
-Each successful publishing run is a complete cache checkpoint: unchanged paths were covered by an earlier successful run, and changed paths are built and pushed. If either cache is purged independently, use a manual dispatch to repopulate the full matrix.
+Both workflows rely solely on the cache actions' built-in post-build hooks to publish locally built paths and their closures, including build-time dependencies. Substituted paths do not trigger uploads, so cache hits are not mirrored between caches. Attic reports upload errors as warnings rather than failing the workflow; a successful run does not guarantee that both caches contain every selected output.
 
 To consume the public cache, add the substituter to your Nix config:
 
