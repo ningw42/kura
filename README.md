@@ -91,7 +91,7 @@ The first `nix develop` after cloning installs the pre-commit hooks; re-run it a
 
 `matrix.nix` is the source of truth for two selective GitHub Actions workflows:
 
-- **PR validation** compares configured outputs with the pull request's base commit and builds changed outputs. Same-repository PRs whose author association is `OWNER`, `MEMBER`, or `COLLABORATOR` enable Cachix and Attic's built-in uploads. Fork PRs, other authors, and manual validation runs use public Cachix read-only and receive no cache-write credentials. Its stable `Package build validation` result is suitable for branch protection.
+- **PR validation** compares configured outputs with the pull request's base commit and builds changed outputs. Same-repository PRs authored by `github-actions[bot]` or whose author association is `OWNER`, `MEMBER`, or `COLLABORATOR` enable Cachix and Attic's built-in uploads. Fork PRs, other authors, and manual validation runs use public Cachix read-only and receive no cache-write credentials. Its stable `Package build validation` result is suitable for branch protection.
 - **Cache publishing** runs on master pushes and manual dispatches, compares outputs with the latest successful master publishing run, and enables built-in uploads to both caches. Outputs already published by PR validation are normally substituted rather than rebuilt; merge-time changes are still built. Failed or canceled builds remain eligible for subsequent runs.
 
 Selection compares exact Nix `outPath`s rather than inferring affected packages from source paths. Manual runs and events without a usable baseline build the full matrix.
