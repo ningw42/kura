@@ -7,13 +7,13 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.09.35";
+  version = "26.09.36";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-eI07zdO8ZFE3Cm0qMujPOJ/YGx9a4ffHq74IXfUubJM=";
+    hash = "sha256-fA73VKNDXVaT6luF8P4UEMIHvXeR+5dILmhqTDvqZYc=";
   };
 
   # npm follows this short pkg.pr.new dependency edge instead of reusing the
@@ -30,7 +30,7 @@ buildNpmPackage (finalAttrs: {
   '';
 
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-dHrfo12s7xOpYik2wYLvfOHUgJJbhJD6UteqbhBxNoo=";
+  npmDepsHash = "sha256-eedWKjWhxfsRvaDtbWHhWRWo376uy1Il1SuKoxYnoXU=";
 
   # The package ships TypeScript extensions directly for Pi to load.
   dontNpmBuild = true;
