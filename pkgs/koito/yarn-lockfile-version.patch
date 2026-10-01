@@ -1,0 +1,8 @@
+diff --git a/yarn.lock b/yarn.lock
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -4,3 +4,3 @@
+ __metadata:
+-  version: 9
++  version: YARN_LOCKFILE_VERSION_PLACEHOLDER
+   cacheKey: 10c0

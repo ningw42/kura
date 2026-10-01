@@ -3,6 +3,7 @@
   stdenvNoCC,
   buildGoModule,
   fetchFromGitHub,
+  substitute,
   yarn-berry_4,
   nodejs,
   pkg-config,
@@ -29,6 +30,19 @@ let
 
     src = "${src}/client";
 
+    # Yarn 4.15 bumped the lockfile version for its new package-age default.
+    # Remove once upstream migrates its v9 lockfile; patch the cache too.
+    patches = [
+      (substitute {
+        src = ./yarn-lockfile-version.patch;
+        substitutions = [
+          "--replace-fail"
+          "YARN_LOCKFILE_VERSION_PLACEHOLDER"
+          yarn-berry_4.lockfileVersion
+        ];
+      })
+    ];
+
     nativeBuildInputs = [
       yarn-berry_4.yarnBerryConfigHook
       yarn-berry_4
@@ -40,8 +54,8 @@ let
     # the canonical berry name `offlineCache` works without changes upstream.
     missingHashes = ./missing-hashes.json;
     offlineCache = yarn-berry_4.fetchYarnBerryDeps {
-      inherit (finalAttrs) src missingHashes;
-      hash = "sha256-VIlWld21GScJ/2UUkKQISM9jyU9wCVwwDNKkge+K044=";
+      inherit (finalAttrs) src missingHashes patches;
+      hash = "sha256-2kWRZBGm7pTpOwZ1Wp+pCU5WWFche1xqGyLL86eGEow=";
     };
 
     env = {
