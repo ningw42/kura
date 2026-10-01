@@ -79,7 +79,7 @@ jobs:
       # public Cachix, and never receive either cache's write credentials.
       - name: Setup Attic
         if: env.PUBLISH_CACHES == 'true'
-        uses: ningw42/attic-action@v0.6.0
+        uses: ningw42/attic-action@v0.7.0
         with:
           endpoint: ${{ secrets.ATTIC_ENDPOINT }}
           cache: ${{ secrets.ATTIC_CACHE }}
