@@ -54,6 +54,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
   };
 
   postPatch = lib.optionalString stdenv.hostPlatform.isLinux ''
+    # Rust supplies the compiler builtins. Bundling Zig's runtime leaves
+    # overlapping unwind records that ld.bfd rejects (nixpkgs PR #568618).
+    substituteInPlace vendor/libghostty-vt/src/build/GhosttyLibVt.zig \
+      --replace-fail 'lib.bundle_compiler_rt = true;' 'lib.bundle_compiler_rt = false;' \
+      --replace-fail 'lib.bundle_ubsan_rt = true;' 'lib.bundle_ubsan_rt = false;'
+
     substituteInPlace src/platform/linux.rs \
       --replace-fail 'let mut cmd = command("notify-send");' \
         'let mut cmd = command("${libnotify}/bin/notify-send");'
@@ -75,12 +81,20 @@ rustPlatform.buildRustPackage (finalAttrs: {
     chmod -R u+w "$ZIG_GLOBAL_CACHE_DIR/p"
   '';
 
-  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
-    installShellCompletion --cmd herdr \
-      --bash <("$out/bin/herdr" completion bash) \
-      --fish <("$out/bin/herdr" completion fish) \
-      --zsh <("$out/bin/herdr" completion zsh)
-  '';
+  postInstall =
+    lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+      installShellCompletion --cmd herdr \
+        --bash <("$out/bin/herdr" completion bash) \
+        --fish <("$out/bin/herdr" completion fish) \
+        --zsh <("$out/bin/herdr" completion zsh)
+    ''
+    + ''
+      # Expose hook/plugin sources for declarative home-manager integration,
+      # following llm-agents.nix without running `herdr integrate` at build time.
+      install -d "$out/share/herdr"
+      cp -r src/integration/assets "$out/share/herdr/integrations"
+      find "$out/share/herdr/integrations" -name '*.test.ts' -delete
+    '';
 
   doInstallCheck = true;
   installCheckPhase = ''
@@ -89,6 +103,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     cargoVersion=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
     test "$("$out/bin/herdr" --version)" = \
       "herdr $cargoVersion-preview.${finalAttrs.version}"
+
+    # Ship every integration asset unchanged, except upstream test files.
+    diff -r --exclude='*.test.ts' src/integration/assets "$out/share/herdr/integrations"
+    test -z "$(find "$out/share/herdr/integrations" -name '*.test.ts' -print -quit)"
 
     runHook postInstallCheck
   '';
