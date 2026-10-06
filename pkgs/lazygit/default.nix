@@ -8,7 +8,7 @@
 }:
 buildGoModule (finalAttrs: {
   pname = "lazygit";
-  version = "0.65.1";
+  version = "0.66.0";
 
   src = fetchFromGitHub {
     owner = "jesseduffield";
@@ -16,7 +16,7 @@ buildGoModule (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-vpvjywx8PeKuAVWfYfG6MUfSddOwZupzRhPYwrTWEmw=";
+    hash = "sha256-2edvYQQxCkGNj3CJrLibaUgFF+uxnwULlO7G6SdgWPU=";
   };
 
   vendorHash = null;
