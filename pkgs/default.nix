@@ -35,3 +35,6 @@ in
   trguing = callPackage ./trguing { };
   zashboard = callPackage ./zashboard { };
 }
+// pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+  magpie = callPackage ./magpie { };
+}

@@ -89,9 +89,9 @@
         kura = self.packages.${prev.stdenv.hostPlatform.system} or { };
       };
 
-      # Per-system packages. Exposed for both supportedSystems so consumers
-      # on either platform can pull them. The cache pipeline decides separately
-      # (in matrix.nix) which of these to actually build and cache.
+      # Per-system packages. The registry exposes packages on both systems
+      # unless explicitly platform-specific. The cache pipeline decides
+      # separately (in matrix.nix) which outputs to actually build and cache.
       packages = forSupportedSystems (
         system:
         let
