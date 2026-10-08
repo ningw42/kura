@@ -4,7 +4,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 
 ## What's in here
 
-✅ marks a platform the package is **prebuilt and cached** for; a blank cell means no prebuilt artifact, so supported packages build from source. Every package attribute is exposed for both systems regardless — the table only reflects what's cached (see [Build validation and caching](#build-validation-and-caching)).
+✅ marks a platform the package is **prebuilt and cached** for; a blank cell means a supported package builds from source, and — means the package is not exposed on that platform (see [Build validation and caching](#build-validation-and-caching)).
 
 | Package | x86_64-linux | aarch64-darwin |
 |---|:-:|:-:|
@@ -16,6 +16,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
 | litellm | ✅ | |
+| magpie | ✅ | — |
 | moor | ✅ | ✅ |
 | multi-scrobbler | ✅ | |
 | pi-distribution | ✅ | ✅ |
@@ -53,7 +54,7 @@ See `pkgs/<name>/default.nix` for each derivation.
 }
 ```
 
-The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Every Linux package is cached; on Darwin, only the checkmarked packages above are cached. Other supported Darwin packages build from source unless added to `matrix.nix`.
+The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Every Linux package is cached; on Darwin, only the checkmarked packages above are cached. Other supported Darwin packages build from source unless added to `matrix.nix`. Magpie is Linux-only and built headlessly: use `magpie serve` for the API gateway or `magpie web --gateway --no-open` for browser administration; no desktop libraries are required. Its plugins use Nix-packaged Bun, overridable with `MAGPIE_BUN`. Claude subscription providers still require a separately installed Claude Code executable and login.
 
 ## Updating packages
 
