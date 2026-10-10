@@ -13,6 +13,7 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | copilotd | ✅ | |
 | fzf | ✅ | ✅ |
 | herdr | ✅ | ✅ |
+| herdr-web-ui | ✅ | — |
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
 | litellm | ✅ | |
@@ -55,6 +56,8 @@ See `pkgs/<name>/default.nix` for each derivation.
 ```
 
 The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Every Linux package is cached; on Darwin, only the checkmarked packages above are cached. Other supported Darwin packages build from source unless added to `matrix.nix`. Magpie is Linux-only and built headlessly: use `magpie serve` for the API gateway or `magpie web --gateway --no-open` for browser administration; no desktop libraries are required. Its plugins use Nix-packaged Bun, overridable with `MAGPIE_BUN`. Claude subscription providers still require a separately installed Claude Code executable and login.
+
+Herdr Web UI is Linux-only. Run `herdr-web-ui` with a compatible, separately installed Herdr selected by `HERDR_WEB_HERDR_BIN` (or `PATH`); this package does not depend on kura's Herdr preview. The prebuilt web client and direct server entrypoint never install dependencies or rebuild themselves at startup. Update through Nix, not the upstream managed launcher. Bun and real Node (for the native PTY sidecar) are included, and telemetry defaults off (`HERDR_WEB_TELEMETRY=off`). Configure the service's home, credentials, and Herdr socket outside this package.
 
 ## Updating packages
 

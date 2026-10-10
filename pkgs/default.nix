@@ -36,5 +36,6 @@ in
   zashboard = callPackage ./zashboard { };
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+  herdr-web-ui = callPackage ./herdr-web-ui { };
   magpie = callPackage ./magpie { };
 }
