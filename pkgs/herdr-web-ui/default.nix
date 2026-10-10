@@ -4,9 +4,10 @@
   stdenvNoCC,
   fetchFromGitHub,
   bun,
-  nodejs_22,
+  nodejs-slim_22,
   autoPatchelfHook,
   makeWrapper,
+  writableTmpDirAsHomeHook,
   cacert,
   bash,
   coreutils,
@@ -29,9 +30,10 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     bun
-    nodejs_22
+    nodejs-slim_22
     autoPatchelfHook
     makeWrapper
+    writableTmpDirAsHomeHook
   ];
   buildInputs = [ stdenv.cc.cc.lib ];
   strictDeps = true;
@@ -39,8 +41,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   configurePhase = ''
     runHook preConfigure
 
-    export HOME="$TMPDIR/home"
-    mkdir -p "$HOME"
     cp -R ${finalAttrs.passthru.bunDeps}/node_modules .
     chmod -R u+w node_modules
     patchShebangs node_modules
@@ -72,9 +72,12 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p "$out/lib/herdr-web-ui"
-    cp -R dist server shared package.json node_modules LICENSE THIRD_PARTY_NOTICES.md \
+    cp -R dist server shared package.json LICENSE THIRD_PARTY_NOTICES.md \
       "$out/lib/herdr-web-ui/"
-    rm -rf "$out/lib/herdr-web-ui/node_modules/.cache"
+    # The build tree carries devDependencies (Vite, TypeScript, Playwright); ship runtime ones only.
+    cp -R ${finalAttrs.passthru.bunProdDeps}/node_modules "$out/lib/herdr-web-ui/"
+    chmod -R u+w "$out/lib/herdr-web-ui/node_modules"
+    patchShebangs "$out/lib/herdr-web-ui/node_modules"
 
     # The managed entrypoint rebuilds/self-updates. Run only the immutable server;
     # Herdr itself is supplied by the caller (HERDR_WEB_HERDR_BIN or PATH).
@@ -85,7 +88,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       --prefix PATH : ${
         lib.makeBinPath [
           bun
-          nodejs_22
+          nodejs-slim_22
           git
           openssh
           bash
@@ -93,7 +96,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
           procps
         ]
       } \
-      --set NODE_ENV production \
       --set-default HERDR_WEB_TELEMETRY off
 
     runHook postInstall
@@ -105,8 +107,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   installCheckPhase = ''
     runHook preInstallCheck
 
-    export HOME="$TMPDIR/check-home"
-    mkdir -p "$HOME"
     export HERDR_WEB_TELEMETRY=off HERDR_TEST_MODE=unit
     node "$out/lib/herdr-web-ui/server/pty/smoke.mjs"
     bun --no-install test "$out/lib/herdr-web-ui/server/pty/session.test.ts"
@@ -114,58 +114,85 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook postInstallCheck
   '';
 
-  passthru = {
-    bunDeps = stdenvNoCC.mkDerivation {
-      pname = "${finalAttrs.pname}-bun-deps";
-      inherit (finalAttrs) version src;
-      nativeBuildInputs = [ bun ];
-      impureEnvVars = lib.fetchers.proxyImpureEnvVars;
-      env.SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-      dontConfigure = true;
-      buildPhase = ''
-        runHook preBuild
+  passthru =
+    let
+      fetchBunDeps =
+        {
+          suffix,
+          installFlags ? [ ],
+          hash,
+        }:
+        stdenvNoCC.mkDerivation {
+          pname = "${finalAttrs.pname}-${suffix}";
+          inherit (finalAttrs) version src;
+          nativeBuildInputs = [
+            bun
+            writableTmpDirAsHomeHook
+          ];
+          impureEnvVars = lib.fetchers.proxyImpureEnvVars;
+          env.SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
+          dontConfigure = true;
+          buildPhase = ''
+            runHook preBuild
 
-        export HOME="$TMPDIR/home"
-        export BUN_INSTALL_CACHE_DIR="$TMPDIR/bun-cache"
-        mkdir -p "$HOME"
-        # A hoisted tree avoids Bun's nondeterministic shared .bun symlink layout.
-        bun install --frozen-lockfile --ignore-scripts --no-progress --linker hoisted
+            export BUN_INSTALL_CACHE_DIR="$TMPDIR/bun-cache"
+            # A hoisted tree avoids Bun's nondeterministic shared .bun symlink layout.
+            bun install --frozen-lockfile --ignore-scripts --no-progress --linker hoisted \
+              ${lib.escapeShellArgs installFlags}
 
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
 
-        mkdir -p "$out"
-        cp -R node_modules "$out/"
-        rm -rf "$out/node_modules/.cache"
+            mkdir -p "$out"
+            cp -R node_modules "$out/"
+            rm -rf "$out/node_modules/.cache"
 
-        runHook postInstall
-      '';
-      # No store references from rewritten shebangs or native library paths in a FOD.
-      dontFixup = true;
-      outputHash = "sha256-44WPT3apQnLbPQogUALC/n2LmK3jKnatJXRoN99+lOo=";
-      outputHashAlgo = "sha256";
-      outputHashMode = "recursive";
+            runHook postInstall
+          '';
+          # No store references from rewritten shebangs or native library paths in a FOD.
+          dontFixup = true;
+          outputHash = hash;
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+        };
+    in
+    {
+      # Full tree for building and checking; the runtime tree omits devDependencies.
+      bunDeps = fetchBunDeps {
+        suffix = "bun-deps";
+        hash = "sha256-44WPT3apQnLbPQogUALC/n2LmK3jKnatJXRoN99+lOo=";
+      };
+      bunProdDeps = fetchBunDeps {
+        suffix = "bun-prod-deps";
+        installFlags = [ "--production" ];
+        hash = "sha256-0p1ggSSd5ROy3OytvjDhTvR0YlfebPhpuE9bdPNMLhU=";
+      };
+      updateScript = nix-update-script {
+        extraArgs = [
+          "--flake"
+          "--use-github-releases"
+          # The same repository also publishes unrelated remote-v* bridge bundles.
+          "--version-regex"
+          ''^v(\d+\.\d+\.\d+)$''
+          "--custom-dep"
+          "bunDeps"
+          "--custom-dep"
+          "bunProdDeps"
+        ];
+      };
     };
-    updateScript = nix-update-script {
-      extraArgs = [
-        "--flake"
-        "--use-github-releases"
-        # The same repository also publishes unrelated remote-v* bridge bundles.
-        "--version-regex"
-        ''^v(\d+\.\d+\.\d+)$''
-        "--custom-dep"
-        "bunDeps"
-      ];
-    };
-  };
 
   meta = {
     description = "Browser UI for Herdr workspaces, terminals, and agents";
     homepage = "https://github.com/devswha/herdr-web-ui";
     changelog = "https://github.com/devswha/herdr-web-ui/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
+    sourceProvenance = with lib.sourceTypes; [
+      fromSource
+      binaryNativeCode
+    ];
     mainProgram = "herdr-web-ui";
     platforms = [ "x86_64-linux" ];
   };
