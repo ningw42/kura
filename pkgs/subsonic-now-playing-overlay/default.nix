@@ -21,6 +21,9 @@ buildNpmPackage rec {
   installPhase = ''
     runHook preInstall
 
+    # The custom install skips npmInstallHook's devDependency prune.
+    npm prune --omit=dev --no-save
+
     mkdir -p $out/share
     cp -a . $out/share/subsonic-now-playing-overlay
 
