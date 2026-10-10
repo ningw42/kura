@@ -85,6 +85,10 @@ buildNpmPackage rec {
     description = "Scrobble plays from multiple sources to multiple clients";
     homepage = "https://github.com/FoxxMD/multi-scrobbler";
     license = licenses.mit;
+    sourceProvenance = with sourceTypes; [
+      fromSource
+      binaryNativeCode
+    ];
     maintainers = [ ];
     mainProgram = "multi-scrobbler";
   };
