@@ -38,6 +38,9 @@ buildNpmPackage rec {
   installPhase = ''
     runHook preInstall
 
+    # The custom install skips npmInstallHook's devDependency prune.
+    npm prune --omit=dev --no-save
+
     mkdir -p $out/{bin,lib/brave-search-mcp-server}
     cp -r dist node_modules package.json $out/lib/brave-search-mcp-server/
 
