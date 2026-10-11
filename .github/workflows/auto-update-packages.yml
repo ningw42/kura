@@ -15,14 +15,16 @@ on:
     paths:
       - ".github/workflows/auto-update-packages.yml"
       - ".github/scripts/summarize-package-updates.py"
+# The default token is only used for checkout and authenticated source reads.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 concurrency:
   group: auto-update-packages
   cancel-in-progress: false
 jobs:
   update:
+    # Only trusted master runs may use the PAT to publish update PRs.
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,11 +50,13 @@ jobs:
       - name: Summarize changes
         id: changeset
         run: ./.github/scripts/summarize-package-updates.py
+      # PAT-created PR events run CI without the GITHUB_TOKEN approval gate.
+      # Do not fall back to GITHUB_TOKEN if the secret is missing or expired.
       - name: Create or update PR
         if: steps.changeset.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AUTO_UPDATE_PAT }}
           branch: auto-update/packages
           delete-branch: true
           commit-message: ${{ steps.changeset.outputs.title }}

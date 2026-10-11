@@ -15,14 +15,16 @@ on:
     paths:
       - ".github/workflows/auto-update-flake-inputs.yml"
       - ".github/scripts/summarize-flake-input-updates.py"
+# The default token is only used for checkout and authenticated source reads.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 concurrency:
   group: auto-update-flake-inputs
   cancel-in-progress: false
 jobs:
   update:
+    # Only trusted master runs may use the PAT to publish update PRs.
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,11 +41,13 @@ jobs:
       - name: Summarize changes
         id: changeset
         run: ./.github/scripts/summarize-flake-input-updates.py /tmp/flake.lock.old flake.lock
+      # PAT-created PR events run CI without the GITHUB_TOKEN approval gate.
+      # Do not fall back to GITHUB_TOKEN if the secret is missing or expired.
       - name: Create or update PR
         if: steps.changeset.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AUTO_UPDATE_PAT }}
           branch: auto-update/flake-inputs
           delete-branch: true
           commit-message: ${{ steps.changeset.outputs.title }}
