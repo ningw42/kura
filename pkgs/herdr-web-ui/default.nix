@@ -19,13 +19,13 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "herdr-web-ui";
-  version = "0.4.5";
+  version = "0.4.6";
 
   src = fetchFromGitHub {
     owner = "devswha";
     repo = "herdr-web-ui";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-4hb3QR5h3PJseqGJYntSJAOVp1ToIXOLm7/I7nQJ4yE=";
+    hash = "sha256-UN9/Qq/wmAg9wdW9szn/PSF5qPq/2RbiX+wkdONOhc8=";
   };
 
   nativeBuildInputs = [
