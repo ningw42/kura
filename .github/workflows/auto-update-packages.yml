@@ -8,7 +8,7 @@ name: Auto-update packages
 on:
   workflow_dispatch:
   schedule:
-    - cron: "15 2 * * *" # daily 02:15 UTC
+    - cron: "15 2,14 * * *" # twice daily 02:15 and 14:15 UTC
   push:
     branches:
       - master
