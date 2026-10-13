@@ -1,181 +1,184 @@
 {
   lib,
+  autoPatchelfHook,
   buildNpmPackage,
-  fetchFromGitHub,
+  bun,
   fetchurl,
-  nix-update-script,
-  versionCheckHook,
-  writableTmpDirAsHomeHook,
-  ripgrep,
   fd,
   libxcb,
-  makeBinaryWrapper,
+  nix-update-script,
   patchelf,
-  stdenvNoCC,
+  rcodesign,
+  ripgrep,
+  stdenv,
+  versionCheckHook,
+  writableTmpDirAsHomeHook,
+  useBun ? true,
 }:
+
+let
+  nativeTargets = {
+    aarch64-darwin = "darwin-arm64";
+    aarch64-linux = "linux-arm64";
+    x86_64-linux = "linux-x64";
+  };
+  nativeTarget =
+    nativeTargets.${stdenv.hostPlatform.system}
+      or (throw "Unsupported Pi platform: ${stdenv.hostPlatform.system}");
+  nativePlatform = if stdenv.hostPlatform.isDarwin then "darwin" else "linux";
+  nativeFile = "${nativePlatform}-platform${lib.optionalString stdenv.hostPlatform.isLinux "-x11"}.node";
+in
 buildNpmPackage (finalAttrs: {
   pname = "pi-coding-agent";
   version = "1.2.0";
 
-  src = fetchFromGitHub {
-    owner = "earendil-works";
-    repo = "pi";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-IjNJvVxjzRur2foQDWPA5iM9sa3ThBoZU1/LT5pU6jc=";
+  # Follow llm-agents.nix: compile the already-built npm release with Bun.
+  # Keep the registry fetch visible to nix-update for version/hash discovery.
+  src = fetchurl {
+    url = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-${finalAttrs.version}.tgz";
+    hash = "sha256-Hf7TCPRqaa7Aa/ncIHAN3G/iNwsYmPATNLeJg5dUHmY=";
   };
 
-  npmDepsHash = "sha256-P/KWhkvLjtpWRiwLCHu2iUVyI8nragSnQGWUQNsRhw8=";
-
-  # The generated provider model catalog is gitignored upstream. Restore it
-  # from the matching pi-ai npm release so the source build stays offline.
-  # The updater refreshes this hash alongside the source and dependency hashes.
-  modelData = fetchurl {
-    url = "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-${finalAttrs.version}.tgz";
-    hash = "sha256-w+aUI7yrlxLzGn5bbTRIrjVq+EQ57GvHAfYm9uoWRTU=";
-  };
-
-  preConfigure = ''
-    mkdir -p packages/ai/src/providers/data
-    tar --extract --gzip --file=${finalAttrs.modelData} \
-      --directory=packages/ai/src/providers/data \
-      --strip-components=4 \
-      package/dist/providers/data
+  postPatch = ''
+    rm -f npm-shrinkwrap.json
+    cp ${./package-lock.json} package-lock.json
   '';
 
-  npmWorkspace = "packages/coding-agent";
+  npmDepsFetcherVersion = 2;
+  npmDepsHash = "sha256-BwhAre9r9uBEOLoExU8zt/Z5TDvxQnbmC3whPOkpbp4=";
+  makeCacheWritable = true;
 
-  # Skip native module rebuilds for unneeded workspaces, such as web-ui canvas.
-  npmRebuildFlags = [ "--ignore-scripts" ];
+  # The npm tarball already contains the compiled JavaScript and model catalog.
+  dontNpmBuild = true;
 
-  nativeBuildInputs = [
-    makeBinaryWrapper
-  ]
-  ++ lib.optional stdenvNoCC.hostPlatform.isLinux patchelf;
+  nativeBuildInputs =
+    lib.optional useBun bun
+    ++ lib.optional (useBun && stdenv.hostPlatform.isLinux) autoPatchelfHook
+    ++ lib.optional (useBun && stdenv.hostPlatform.isDarwin) rcodesign
+    ++ lib.optional (!useBun && stdenv.hostPlatform.isLinux) patchelf;
 
-  buildPhase = ''
-    runHook preBuild
+  buildInputs = lib.optional stdenv.hostPlatform.isLinux libxcb;
 
-    npm run build:offline
+  # A compiled binary preserves extension module aliasing; running the Bun
+  # entrypoint as a script does not. Node remains an optional fallback.
+  preInstall = lib.optionalString useBun ''
+    # The npm release only has dist/, but embedded worker paths use src/.
+    mkdir -p src/utils src/modes src/core src/extensions/codemode
+    echo 'import "../../dist/utils/image-resize-worker.js";' > src/utils/image-resize-worker.ts
+    echo 'import "../../../dist/extensions/codemode/worker.js";' > src/extensions/codemode/worker.ts
+    ln -s ../../dist/modes/interactive src/modes/interactive
+    ln -s ../../dist/core/export-html src/core/export-html
 
-    runHook postBuild
+    # package.json autoload fixes extension main/exports resolution. Do not
+    # autoload project bunfig.toml or .env files, matching upstream's isolation.
+    bun build --compile \
+      --no-compile-autoload-bunfig \
+      --no-compile-autoload-dotenv \
+      --compile-autoload-package-json \
+      ./dist/bun/cli.js \
+      ./src/utils/image-resize-worker.ts \
+      ./src/extensions/codemode/worker.ts \
+      --outfile dist/pi
   '';
 
-  dontNpmPrune = true;
+  postInstall =
+    if useBun then
+      ''
+        pkgdir=$out/libexec/pi
 
-  preInstall = ''
-    npm prune --omit=dev --no-save
-  '';
+        # Replace the npm installation with the standalone release layout.
+        rm -rf "$out/lib" "$out/bin"
+        mkdir -p "$out/bin" "$pkgdir/theme" "$pkgdir/assets"
+        cp dist/pi "$pkgdir/"
+        cp package.json README.md CHANGELOG.md "$pkgdir/"
+        mkdir -p "$pkgdir/native/${nativePlatform}/prebuilds"
+        cp -r node_modules/@earendil-works/pi-tui/native/${nativePlatform}/prebuilds/${nativeTarget} \
+          "$pkgdir/native/${nativePlatform}/prebuilds/"
+        cp node_modules/@silvia-odwyer/photon-node/photon_rs_bg.wasm "$pkgdir/"
+        cp dist/modes/interactive/theme/*.json "$pkgdir/theme/"
+        cp dist/modes/interactive/assets/* "$pkgdir/assets/"
+        cp -r dist/core/export-html "$pkgdir/"
+        cp -r docs examples "$pkgdir/"
+        # Shipped examples must not pull Node into the closure via shebangs.
+        find "$pkgdir" -name '*.js' -exec chmod -x {} +
 
-  # The npm workspace symlinks otherwise point into a missing packages/ tree.
-  postInstall = ''
-    local nm="$out/lib/node_modules/pi-monorepo/node_modules"
+        makeWrapper "$pkgdir/pi" "$out/bin/pi" \
+          --prefix PATH : ${
+            lib.makeBinPath [
+              fd
+              ripgrep
+            ]
+          } \
+          --set PI_PACKAGE_DIR "$pkgdir" \
+          --set PI_SKIP_VERSION_CHECK 1 \
+          --set PI_TELEMETRY 0
+      ''
+    else
+      lib.optionalString stdenv.hostPlatform.isLinux ''
+        # Node mode has no autoPatchelf hook, but its native TUI helper needs libxcb.
+        for addon in "$out/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui/native/linux/prebuilds/"*/linux-platform-x11.node; do
+          patchelf --add-rpath ${lib.makeLibraryPath [ libxcb ]} "$addon"
+        done
+      ''
+      + ''
+        wrapProgram "$out/bin/pi" \
+          --prefix PATH : ${
+            lib.makeBinPath [
+              fd
+              ripgrep
+            ]
+          } \
+          --set PI_SKIP_VERSION_CHECK 1 \
+          --set PI_TELEMETRY 0
+      '';
 
-    # Follow runtime dependencies instead of hardcoding workspace names, which
-    # upstream can remove or rename between releases.
-    node --input-type=module - "$nm" <<'JS'
-    import fs from "node:fs";
-    import path from "node:path";
-
-    const workspaces = new Map();
-    for (const entry of fs.readdirSync("packages")) {
-      const directory = path.join("packages", entry);
-      const manifest = path.join(directory, "package.json");
-      if (!fs.existsSync(manifest)) continue;
-      const pkg = JSON.parse(fs.readFileSync(manifest, "utf8"));
-      workspaces.set(pkg.name, { directory, pkg });
-    }
-
-    const root = JSON.parse(fs.readFileSync("packages/coding-agent/package.json", "utf8")).name;
-    const pending = [root];
-    const seen = new Set();
-    while (pending.length) {
-      const name = pending.pop();
-      if (seen.has(name) || !workspaces.has(name)) continue;
-      seen.add(name);
-      const { directory, pkg } = workspaces.get(name);
-      pending.push(...Object.keys({
-        ...pkg.dependencies,
-        ...pkg.optionalDependencies,
-        ...pkg.peerDependencies,
-      }));
-      if (name === root) continue;
-      const destination = path.join(process.argv[2], name);
-      fs.rmSync(destination, { recursive: true, force: true });
-      fs.cpSync(directory, destination, { recursive: true });
-    }
-    JS
-
-    find "$nm" -type l -lname '*/packages/*' -delete
-    find "$nm/.bin" -xtype l -delete
-  ''
-  + lib.optionalString stdenvNoCC.hostPlatform.isLinux ''
-    # The prebuilt TUI helper links to libxcb, which is not on Nix's loader path.
-    for addon in "$nm/@earendil-works/pi-tui/native/linux/prebuilds/"*/linux-platform-x11.node; do
-      patchelf --add-rpath ${lib.makeLibraryPath [ libxcb ]} "$addon"
-    done
-  ''
-  + lib.optionalString stdenvNoCC.hostPlatform.isDarwin ''
-    # Foreign Linux binaries would make audit-tmpdir inspect ELF RPATHs.
-    rm -rf \
-      "$nm/@anthropic-ai/sandbox-runtime/dist/vendor/seccomp" \
-      "$nm/@anthropic-ai/sandbox-runtime/vendor/seccomp"
-  '';
-
-  postFixup = ''
-    wrapProgram $out/bin/pi --prefix PATH : ${
-      lib.makeBinPath [
-        ripgrep
-        fd
-      ]
-    } \
-      --set-default PI_SKIP_VERSION_CHECK 1 \
-      --set-default PI_TELEMETRY 0
+  # Darwin fixup can invalidate Bun's embedded signature; sign afterward.
+  postFixup = lib.optionalString (useBun && stdenv.hostPlatform.isDarwin) ''
+    ${lib.getExe rcodesign} sign --code-signature-flags linker-signed $out/libexec/pi/pi
   '';
 
   doInstallCheck = true;
   nativeInstallCheckInputs = [
-    writableTmpDirAsHomeHook
     versionCheckHook
+    writableTmpDirAsHomeHook
   ];
   versionCheckKeepEnvironment = [ "HOME" ];
   versionCheckProgram = "${placeholder "out"}/bin/pi";
   versionCheckProgramArg = "--version";
 
-  # Exercise the installed dependency graph and restored model catalog without
-  # credentials or network access, rather than checking only the CLI version.
-  postInstallCheck = ''
-    node --input-type=module - "$out/lib/node_modules/pi-monorepo" <<'JS'
-    import { createRequire } from "node:module";
-    import path from "node:path";
-
-    const pkgdir = process.argv[2];
-    await import(path.join(pkgdir, "dist/index.js"));
-    const platform = process.platform;
-    const nativeFile = platform + "-platform" + (platform === "linux" ? "-x11" : "") + ".node";
-    createRequire(import.meta.url)(path.join(
-      pkgdir, "node_modules/@earendil-works/pi-tui/native", platform,
-      "prebuilds", platform + "-" + process.arch, nativeFile,
-    ));
-    JS
-    "$out/bin/pi" --list-models > "$TMPDIR/pi-models.txt"
-    test -s "$TMPDIR/pi-models.txt"
-  '';
+  postInstallCheck =
+    (
+      if useBun then
+        ''
+          ${bun}/bin/bun --eval 'require(process.argv[1])' \
+            "$out/libexec/pi/native/${nativePlatform}/prebuilds/${nativeTarget}/${nativeFile}"
+        ''
+      else
+        lib.optionalString (builtins.hasAttr stdenv.hostPlatform.system nativeTargets) ''
+          node -e 'require(process.argv[1])' \
+            "$out/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui/native/${nativePlatform}/prebuilds/${nativeTarget}/${nativeFile}"
+        ''
+    )
+    + ''
+      "$out/bin/pi" --list-models > "$TMPDIR/pi-models.txt"
+      test -s "$TMPDIR/pi-models.txt"
+    '';
 
   passthru.updateScript = nix-update-script {
     extraArgs = [
       "--flake"
-      "--use-github-releases"
-      "--custom-dep"
-      "modelData"
+      "--generate-lockfile"
     ];
   };
 
   meta = {
-    description = "Coding agent CLI with read, bash, edit, write tools and session management";
+    description = "A terminal-based coding agent with multi-model support";
     homepage = "https://pi.dev/";
     downloadPage = "https://www.npmjs.com/package/@earendil-works/pi-coding-agent";
-    changelog = "https://github.com/earendil-works/pi/blob/v${finalAttrs.version}/packages/coding-agent/CHANGELOG.md";
+    changelog = "https://github.com/earendil-works/pi/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
+    sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
+    platforms = if useBun then builtins.attrNames nativeTargets else lib.platforms.all;
     mainProgram = "pi";
   };
 })
