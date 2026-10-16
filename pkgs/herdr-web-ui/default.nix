@@ -14,9 +14,23 @@
   git,
   openssh,
   procps,
+  unixtools,
+  writeShellScriptBin,
   nix-update-script,
 }:
 
+let
+  ptyPlatforms = {
+    aarch64-darwin = "darwin-arm64";
+    x86_64-darwin = "darwin-x64";
+    aarch64-linux = "linux-arm64";
+    x86_64-linux = "linux-x64";
+  };
+  ptyPlatform =
+    ptyPlatforms.${stdenv.hostPlatform.system}
+      or (throw "Unsupported herdr-web-ui platform: ${stdenv.hostPlatform.system}");
+  ps = if stdenv.hostPlatform.isLinux then procps else unixtools.ps;
+in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "herdr-web-ui";
   version = "0.4.10";
@@ -31,11 +45,15 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     bun
     nodejs-slim_22
-    autoPatchelfHook
     makeWrapper
     writableTmpDirAsHomeHook
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    autoPatchelfHook
   ];
-  buildInputs = [ stdenv.cc.cc.lib ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    stdenv.cc.cc.lib
+  ];
   strictDeps = true;
 
   configurePhase = ''
@@ -77,6 +95,13 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     # The build tree carries devDependencies (Vite, TypeScript, Playwright); ship runtime ones only.
     cp -R ${finalAttrs.passthru.bunProdDeps}/node_modules "$out/lib/herdr-web-ui/"
     chmod -R u+w "$out/lib/herdr-web-ui/node_modules"
+    # Keep only the host platform's prebuilt PTY addon so autoPatchelf and the
+    # runtime closure do not carry foreign binaries.
+    for pkg in "$out/lib/herdr-web-ui/node_modules/@lydell"/node-pty-*; do
+      if [ "$(basename "$pkg")" != "node-pty-${ptyPlatform}" ]; then
+        rm -rf "$pkg"
+      fi
+    done
     patchShebangs "$out/lib/herdr-web-ui/node_modules"
 
     # The managed entrypoint rebuilds/self-updates. Run only the immutable server;
@@ -93,7 +118,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
           openssh
           bash
           coreutils
-          procps
+          ps
         ]
       } \
       --set-default HERDR_WEB_TELEMETRY off
@@ -101,9 +126,16 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
-  # Exercise the installed native addon after autoPatchelf, without a Herdr daemon.
+  # Exercise the installed native addon after fixup, without a Herdr daemon.
   doInstallCheck = true;
-  nativeInstallCheckInputs = [ procps ];
+  nativeInstallCheckInputs = [
+    ps
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isLinux) [
+    (writeShellScriptBin "pgrep" ''
+      ps -axww -o pid=,command= | SELF="$$" TAG="$2" awk '$1 != ENVIRON["SELF"] && index($0, ENVIRON["TAG"]) { print $1 }'
+    '')
+  ];
   installCheckPhase = ''
     runHook preInstallCheck
 
@@ -137,7 +169,11 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
             export BUN_INSTALL_CACHE_DIR="$TMPDIR/bun-cache"
             # A hoisted tree avoids Bun's nondeterministic shared .bun symlink layout.
-            bun install --frozen-lockfile --ignore-scripts --no-progress --linker hoisted \
+            # Install optional packages for all supported OS/CPU targets so a single
+            # FOD hash works on both Linux and Darwin.
+            bun install --frozen-lockfile --ignore-scripts --no-progress \
+              --linker hoisted --backend copyfile \
+              --os=linux --os=darwin --cpu=x64 --cpu=arm64 \
               ${lib.escapeShellArgs installFlags}
 
             runHook postBuild
@@ -162,12 +198,12 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       # Full tree for building and checking; the runtime tree omits devDependencies.
       bunDeps = fetchBunDeps {
         suffix = "bun-deps";
-        hash = "sha256-ED3rcvm8iAAbK3IU0zDSSi30eOA+uUb+q+MkthYjGzI=";
+        hash = "sha256-OFbg9aGjSsQACw8mnk2os3/2A+nWPI23Mk8ZSvCCgjg=";
       };
       bunProdDeps = fetchBunDeps {
         suffix = "bun-prod-deps";
         installFlags = [ "--production" ];
-        hash = "sha256-pJCMc9qb1U9Liubgcv2c2eSVp5lUV0n56224/lO7pYg=";
+        hash = "sha256-HXQK34Ei1KzS9SI5CooMXB6uo3/fExNtLQpC4yDkrxs=";
       };
       updateScript = nix-update-script {
         extraArgs = [
@@ -194,6 +230,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       binaryNativeCode
     ];
     mainProgram = "herdr-web-ui";
-    platforms = [ "x86_64-linux" ];
+    platforms = builtins.attrNames ptyPlatforms;
   };
 })
