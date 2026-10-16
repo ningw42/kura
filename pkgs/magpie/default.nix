@@ -37,7 +37,7 @@ buildGoModule (finalAttrs: {
     export MAGPIE_BUN="${lib.getExe bun}"
   '';
 
-  # Use Nix's Bun rather than downloading a generic Linux ELF for plugins.
+  # Use Nix's Bun rather than downloading an upstream binary at runtime for plugins.
   postInstall = ''
     wrapProgram "$out/bin/magpie" \
       --set-default MAGPIE_BUN "${lib.getExe bun}"
@@ -58,6 +58,6 @@ buildGoModule (finalAttrs: {
     changelog = "https://github.com/yetone/magpie-releases/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
     mainProgram = "magpie";
-    platforms = [ "x86_64-linux" ];
+    platforms = lib.platforms.unix;
   };
 })

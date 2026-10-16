@@ -10,6 +10,7 @@ in
   copilotd = callPackage ./copilotd { };
   fzf = callPackage ./fzf { };
   herdr = callPackage ./herdr { };
+  herdr-web-ui = callPackage ./herdr-web-ui { };
   koito = callPackage ./koito { };
   lazygit = callPackage ./lazygit { };
   litellm =
@@ -22,6 +23,7 @@ in
         dependencies = (old.dependencies or [ ]) ++ base.optional-dependencies.proxy;
       })
     );
+  magpie = callPackage ./magpie { };
   moor = callPackage ./moor { };
   moshi-hook = callPackage ./moshi-hook { };
   multi-scrobbler = callPackage ./multi-scrobbler { };
@@ -35,8 +37,4 @@ in
   transmissionic = callPackage ./transmissionic { };
   trguing = callPackage ./trguing { };
   zashboard = callPackage ./zashboard { };
-}
-// pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
-  herdr-web-ui = callPackage ./herdr-web-ui { };
-  magpie = callPackage ./magpie { };
 }
