@@ -47,9 +47,13 @@ buildGoModule (finalAttrs: {
   doInstallCheck = true;
   versionCheckProgramArg = "version";
 
-  # Source tags live here; GitHub releases live in yetone/magpie-releases.
+  # Ignore auxiliary tags such as pf-v1; only vX.Y.Z tags identify Magpie versions.
   passthru.updateScript = nix-update-script {
-    extraArgs = [ "--flake" ];
+    extraArgs = [
+      "--flake"
+      "--version-regex"
+      "^v([0-9]+[.][0-9]+[.][0-9]+)$"
+    ];
   };
 
   meta = {
