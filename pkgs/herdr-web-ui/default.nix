@@ -33,13 +33,13 @@ let
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "herdr-web-ui";
-  version = "0.4.12";
+  version = "0.4.13";
 
   src = fetchFromGitHub {
     owner = "devswha";
     repo = "herdr-web-ui";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-TwmeSDag7iSGGmR1aTylNY4y3Dbfbk0FYr/dxMFl89A=";
+    hash = "sha256-1mbFr1x3vXpw82s5tbXIrQRz4tYwOBUypC7DO1lpNQk=";
   };
 
   nativeBuildInputs = [
@@ -198,12 +198,12 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       # Full tree for building and checking; the runtime tree omits devDependencies.
       bunDeps = fetchBunDeps {
         suffix = "bun-deps";
-        hash = "sha256-Fwi1HzTbNWw0sLrFmKbotDNdPfhdgfmzS4RGMHrAGGI=";
+        hash = "sha256-Yq2BXZBZatnGxK5xK2KJo0uJD91wsy/K/ayc0pJQU2w=";
       };
       bunProdDeps = fetchBunDeps {
         suffix = "bun-prod-deps";
         installFlags = [ "--production" ];
-        hash = "sha256-+XRYNJxaO4mtvEFt8T3jPyKBVhbmLC7Mb6zpfbD8k9E=";
+        hash = "sha256-9GPi/S0YNVc8l5LRnR3x3RNsc7KUCMiXx/LEX+TcVyw=";
       };
       updateScript = nix-update-script {
         extraArgs = [
