@@ -70,7 +70,9 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preBuild
 
     # Vite compiles the Bun-patched xterm sources before bundling the client.
-    bun --no-install run build
+    # Invoke its JS entrypoint directly under Bun for the theme bootstrap plugin's
+    # Bun.build, bypassing the package script and Vite's patched Node shebang.
+    bun --no-install node_modules/vite/bin/vite.js build
 
     runHook postBuild
   '';
