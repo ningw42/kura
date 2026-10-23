@@ -13,13 +13,13 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | copilotd | ✅ | |
 | fzf | ✅ | ✅ |
 | herdr | ✅ | ✅ |
-| herdr-web-ui | ✅ | |
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
 | litellm | ✅ | |
 | magpie | ✅ | |
 | moor | ✅ | ✅ |
 | multi-scrobbler | ✅ | |
+| ovis | ✅ | |
 | pi-coding-agent | ✅ | ✅ |
 | pi-distribution | ✅ | ✅ |
 | sing-box | ✅ | |
@@ -60,7 +60,7 @@ The flake exposes `packages.x86_64-linux.*` and `packages.aarch64-darwin.*`. Eve
 
 Pi uses the upstream npm release compiled into a standalone Bun executable, following llm-agents.nix, with `fd` and `ripgrep` included. Version checks and telemetry are disabled; updates are managed through Nix. The updater refreshes the npm release, generates its dependency lockfile, and updates the dependency hash together. A Node variant is available with `.override { useBun = false; }`. `pi-distribution` remains a separate extension package.
 
-Run `herdr-web-ui` with a compatible, separately installed Herdr selected by `HERDR_WEB_HERDR_BIN` (or `PATH`); this package does not depend on kura's Herdr preview. The prebuilt web client and direct server entrypoint never install dependencies or rebuild themselves at startup. Update through Nix, not the upstream managed launcher. Bun and real Node (for the native PTY sidecar) are included, and telemetry defaults off (`HERDR_WEB_TELEMETRY=off`). Configure the service's home, credentials, and Herdr socket outside this package.
+Run `ovis` with a compatible, separately installed Herdr selected by `HERDR_WEB_HERDR_BIN` (or `PATH`); this package does not depend on kura's Herdr preview. The prebuilt web client and direct server entrypoint never install dependencies or rebuild themselves at startup. Update through Nix, not the upstream managed launcher. Bun and real Node (for the native PTY sidecar) are included, and telemetry defaults off (`HERDR_WEB_TELEMETRY=off`). Configure the service's home, credentials, and Herdr socket outside this package.
 
 ## Updating packages
 

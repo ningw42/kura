@@ -28,16 +28,16 @@ let
   };
   ptyPlatform =
     ptyPlatforms.${stdenv.hostPlatform.system}
-      or (throw "Unsupported herdr-web-ui platform: ${stdenv.hostPlatform.system}");
+      or (throw "Unsupported ovis platform: ${stdenv.hostPlatform.system}");
   ps = if stdenv.hostPlatform.isLinux then procps else unixtools.ps;
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
-  pname = "herdr-web-ui";
+  pname = "ovis";
   version = "0.4.13";
 
   src = fetchFromGitHub {
     owner = "devswha";
-    repo = "herdr-web-ui";
+    repo = "ovis";
     rev = "v${finalAttrs.version}";
     hash = "sha256-1mbFr1x3vXpw82s5tbXIrQRz4tYwOBUypC7DO1lpNQk=";
   };
@@ -91,27 +91,27 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p "$out/lib/herdr-web-ui"
+    mkdir -p "$out/lib/ovis"
     cp -R dist server shared package.json LICENSE THIRD_PARTY_NOTICES.md \
-      "$out/lib/herdr-web-ui/"
+      "$out/lib/ovis/"
     # The build tree carries devDependencies (Vite, TypeScript, Playwright); ship runtime ones only.
-    cp -R ${finalAttrs.passthru.bunProdDeps}/node_modules "$out/lib/herdr-web-ui/"
-    chmod -R u+w "$out/lib/herdr-web-ui/node_modules"
+    cp -R ${finalAttrs.passthru.bunProdDeps}/node_modules "$out/lib/ovis/"
+    chmod -R u+w "$out/lib/ovis/node_modules"
     # Keep only the host platform's prebuilt PTY addon so autoPatchelf and the
     # runtime closure do not carry foreign binaries.
-    for pkg in "$out/lib/herdr-web-ui/node_modules/@lydell"/node-pty-*; do
+    for pkg in "$out/lib/ovis/node_modules/@lydell"/node-pty-*; do
       if [ "$(basename "$pkg")" != "node-pty-${ptyPlatform}" ]; then
         rm -rf "$pkg"
       fi
     done
-    patchShebangs "$out/lib/herdr-web-ui/node_modules"
+    patchShebangs "$out/lib/ovis/node_modules"
 
     # The managed entrypoint rebuilds/self-updates. Run only the immutable server;
     # Herdr itself is supplied by the caller (HERDR_WEB_HERDR_BIN or PATH).
     # The PTY sidecar must use real Node, not Bun's Node compatibility shim.
-    makeWrapper ${lib.getExe bun} "$out/bin/herdr-web-ui" \
-      --chdir "$out/lib/herdr-web-ui" \
-      --add-flags "--no-install run $out/lib/herdr-web-ui/server/index.ts" \
+    makeWrapper ${lib.getExe bun} "$out/bin/ovis" \
+      --chdir "$out/lib/ovis" \
+      --add-flags "--no-install run $out/lib/ovis/server/index.ts" \
       --prefix PATH : ${
         lib.makeBinPath [
           bun
@@ -142,8 +142,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preInstallCheck
 
     export HERDR_WEB_TELEMETRY=off HERDR_TEST_MODE=unit
-    node "$out/lib/herdr-web-ui/server/pty/smoke.mjs"
-    bun --no-install test "$out/lib/herdr-web-ui/server/pty/session.test.ts"
+    node "$out/lib/ovis/server/pty/smoke.mjs"
+    bun --no-install test "$out/lib/ovis/server/pty/session.test.ts"
 
     runHook postInstallCheck
   '';
@@ -224,14 +224,14 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   meta = {
     description = "Browser UI for Herdr workspaces, terminals, and agents";
-    homepage = "https://github.com/devswha/herdr-web-ui";
-    changelog = "https://github.com/devswha/herdr-web-ui/releases/tag/v${finalAttrs.version}";
+    homepage = "https://github.com/devswha/ovis";
+    changelog = "https://github.com/devswha/ovis/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
     sourceProvenance = with lib.sourceTypes; [
       fromSource
       binaryNativeCode
     ];
-    mainProgram = "herdr-web-ui";
+    mainProgram = "ovis";
     platforms = builtins.attrNames ptyPlatforms;
   };
 })
