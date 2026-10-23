@@ -44,7 +44,7 @@ import (nixpkgs + "/maintainers/scripts/update.nix") (
     #   - Dropping the `kuraPackages` scoping attr and walking at the top
     #     level would mean walking all of nixpkgs to find our handful of
     #     packages, plus name collisions with upstream attrs (`skim`,
-    #     `litellm`, ...).
+    #     `fzf`, ...).
     #
     # So the walker name (`kuraPackages.<name>`, fast/isolated walk) and the
     # flake-output name (`<name>`, what nix-update sees) are necessarily

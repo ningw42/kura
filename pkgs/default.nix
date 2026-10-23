@@ -12,16 +12,6 @@ in
   herdr = callPackage ./herdr { };
   koito = callPackage ./koito { };
   lazygit = callPackage ./lazygit { };
-  litellm =
-    let
-      py = pkgs.python3Packages;
-      base = callPythonPackage ./litellm { };
-    in
-    py.toPythonApplication (
-      base.overridePythonAttrs (old: {
-        dependencies = (old.dependencies or [ ]) ++ base.optional-dependencies.proxy;
-      })
-    );
   magpie = callPackage ./magpie { };
   moor = callPackage ./moor { };
   moshi-hook = callPackage ./moshi-hook { };

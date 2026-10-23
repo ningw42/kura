@@ -15,7 +15,6 @@ A personal Nix flake of packages that aren't in nixpkgs, or whose nixpkgs versio
 | herdr | ✅ | ✅ |
 | koito | ✅ | |
 | lazygit | ✅ | ✅ |
-| litellm | ✅ | |
 | magpie | ✅ | |
 | moor | ✅ | ✅ |
 | multi-scrobbler | ✅ | |
