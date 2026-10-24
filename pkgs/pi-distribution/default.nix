@@ -2,6 +2,7 @@
   lib,
   buildNpmPackage,
   fetchFromGitHub,
+  git,
   nix-update-script,
 }:
 
@@ -30,6 +31,9 @@ buildNpmPackage (finalAttrs: {
     "--legacy-peer-deps"
     "--omit=dev"
   ];
+
+  # Updater regression tests create real Git repositories.
+  nativeCheckInputs = [ git ];
 
   doCheck = true;
   # Runtime-coupled tests use the separately locked smoke environment, which
