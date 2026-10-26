@@ -33,13 +33,13 @@ let
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "ovis";
-  version = "0.4.16";
+  version = "0.4.17";
 
   src = fetchFromGitHub {
     owner = "devswha";
     repo = "ovis";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-kYZh9AOPYbmewwZeZkxuQ6w/mEbOQNI78bdHH7RPcws=";
+    hash = "sha256-yPmFg36rdcRzPf4f87ookBDfhAISX5inxtPXhobl180=";
   };
 
   nativeBuildInputs = [
@@ -200,12 +200,12 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       # Full tree for building and checking; the runtime tree omits devDependencies.
       bunDeps = fetchBunDeps {
         suffix = "bun-deps";
-        hash = "sha256-acMh6ru/BSyRwN6tXFvzhkna30d7uOTCL7/obYvvHPY=";
+        hash = "sha256-bvdoDxFSrvxUdQ5fftv2xr/ykSO4GNRdVPTLHbss8O8=";
       };
       bunProdDeps = fetchBunDeps {
         suffix = "bun-prod-deps";
         installFlags = [ "--production" ];
-        hash = "sha256-cppBgaAWxqb3ckzCcndPUCilo6G/E6PzUnLfy06265I=";
+        hash = "sha256-74e8sRzASFZj1KYukt80uKdYZ9TCJNGvhP6map45jsM=";
       };
       updateScript = nix-update-script {
         extraArgs = [
