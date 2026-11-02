@@ -30,13 +30,13 @@ let
 in
 buildNpmPackage (finalAttrs: {
   pname = "pi-coding-agent";
-  version = "1.4.0";
+  version = "1.5.0";
 
   # Follow llm-agents.nix: compile the already-built npm release with Bun.
   # Keep the registry fetch visible to nix-update for version/hash discovery.
   src = fetchurl {
     url = "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-${finalAttrs.version}.tgz";
-    hash = "sha256-0VXBbvb6AJYPv1iykRU26AsF8zcA4LFPvQiWft4MdCg=";
+    hash = "sha256-W/tmhIpMS4HGN86NITa+AZRbcKrI6FVrCRywIkGzhd8=";
   };
 
   postPatch = ''
@@ -45,7 +45,7 @@ buildNpmPackage (finalAttrs: {
   '';
 
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-yYhDc2lnoH+UvZT+d4uFIhD4/5SP2v/xaFosfig3yPQ=";
+  npmDepsHash = "sha256-JPuy84ipwHuTeeCleY4B4BJRtFkc9CvX/U8EQlRpidA=";
   makeCacheWritable = true;
 
   # The npm tarball already contains the compiled JavaScript and model catalog.
