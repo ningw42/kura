@@ -10,16 +10,16 @@
 
 buildGoModule (finalAttrs: {
   pname = "magpie";
-  version = "0.1.3337";
+  version = "0.1.3384";
 
   src = fetchFromGitHub {
     owner = "yetone";
     repo = "magpie";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-iFqYxnFAI9U4Tctst33uvtRy8Z+f85DFwAKQzN10zOU=";
+    hash = "sha256-Le74WVQehdkTnnxNTGypiBO+XeAuAxJotdyuYC0lzCo=";
   };
 
-  vendorHash = "sha256-uY7d7styCgTw/Jmlc6njlIUNlg9iWIZqPAusQT/94vs=";
+  vendorHash = "sha256-9x4oBEHBN1gbREjzwLrPKjwlCq3847nLjP5QHBFEy4E=";
 
   subPackages = [ "." ];
   tags = [ "nogui" ];
