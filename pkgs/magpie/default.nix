@@ -19,7 +19,9 @@ buildGoModule (finalAttrs: {
     hash = "sha256-aLlpWCMbA6xoB1BBoRe4/ty0qk6STjqExmNOZA68UQk=";
   };
 
-  vendorHash = "sha256-1uxRG7QOibgmJBx99O5OQmIeCJ5V9zdZmsgGVwaKZbo=";
+  # Keep dependencies outside the source tree scanned by upstream's tests.
+  proxyVendor = true;
+  vendorHash = "sha256-Fb4SneDJQmGoNo0B8LHusc3IuvhawRc6a8/CUxC7Vbw=";
 
   subPackages = [ "." ];
   tags = [ "nogui" ];
