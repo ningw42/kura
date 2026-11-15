@@ -9,11 +9,11 @@ let
   sources = {
     "x86_64-linux" = {
       artifact = "moshi-hook_Linux_x86_64.tar.gz";
-      hash = "sha256-cVwAlFNoip+v+SIu3EdpqZxMBMT9B6dXfo5QwHYFVR4=";
+      hash = "sha256-ppoim2Gmt2nX69xqKmQd3bI0IIezNlN3azpyCJ17p/c=";
     };
     "aarch64-darwin" = {
       artifact = "moshi-hook_Darwin_arm64.tar.gz";
-      hash = "sha256-GF1Y66tR1u/hvKQtIhMFmfyOsZ7A6scJGi/kqa8Vl9I=";
+      hash = "sha256-tnZqFddtNcTq/yjUAPgZqnZr1IgC+8I0ls7Z4EwamNs=";
     };
   };
 in
@@ -32,7 +32,7 @@ stdenvNoCC.mkDerivation (
   in
   {
     pname = "moshi-hook";
-    version = "0.4.56";
+    version = "0.4.57";
 
     src = artifacts.${stdenvNoCC.hostPlatform.system};
 
