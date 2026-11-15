@@ -1,7 +1,15 @@
 { pkgs, ... }:
 
 let
-  callPackage = pkgs.callPackage;
+  # TODO(removal): Remove this wiring with ./_update/nix-update.nix; see its checklist.
+  # Plain update scripts embed an absolute executable path, bypassing shell.nix.
+  nix-update = pkgs.callPackage ./_update/nix-update.nix { };
+  callPackage = pkgs.lib.callPackageWith (
+    pkgs
+    // {
+      nix-update-script = pkgs.nix-update-script.override { inherit nix-update; };
+    }
+  );
   callPythonPackage = pkgs.python3Packages.callPackage;
 in
 {

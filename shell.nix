@@ -10,10 +10,15 @@
 {
   pkgs ? import <nixpkgs> { },
 }:
+let
+  # TODO(removal): Remove this wiring with ./pkgs/_update/nix-update.nix; see its checklist.
+  # Shared-driver updaters resolve nix-update through PATH.
+  nix-update = pkgs.callPackage ./pkgs/_update/nix-update.nix { };
+in
 pkgs.mkShellNoCC {
   packages = [
     pkgs.nix
-    pkgs.nix-update
+    nix-update
     pkgs.jq
     pkgs.curl
     pkgs.git

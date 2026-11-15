@@ -145,8 +145,10 @@
                   "$HOME/.config/nix/access-tokens.conf")
                 export GITHUB_TOKEN
               fi
+              # Retain the source dependency: toString drops its context and
+              # Nix >= 2.35 may otherwise leave this store path unmaterialized.
               args=(
-                --argstr flakePath "${toString ./.}"
+                --argstr flakePath "${./.}"
                 --argstr system "${system}"
                 --argstr keep-going true
               )
