@@ -33,13 +33,13 @@ let
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "ovis";
-  version = "0.5.4";
+  version = "0.5.5";
 
   src = fetchFromGitHub {
     owner = "devswha";
     repo = "ovis";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-0g/FJe1ckwEj71ZO2N7t4kHP8mRIGUjRPJbylTM3l2s=";
+    hash = "sha256-/11a9jb11rlLyBXAE7TKVDk3eFuMV72xsvu4iYphLng=";
   };
 
   nativeBuildInputs = [
