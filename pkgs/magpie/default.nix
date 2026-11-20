@@ -10,18 +10,18 @@
 
 buildGoModule (finalAttrs: {
   pname = "magpie";
-  version = "0.1.4595";
+  version = "0.1.4612";
 
   src = fetchFromGitHub {
     owner = "yetone";
     repo = "magpie";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-sAWZoMqS8CbIT59vEgmiSg0Q4jr8p8bJIqAbdXiXs34=";
+    hash = "sha256-BF43ZbWFg4JMDHA+ceaVTkTe/j1ybf0YP3zcfZbmJvg=";
   };
 
   # Keep dependencies outside the source tree scanned by upstream's tests.
   proxyVendor = true;
-  vendorHash = "sha256-9CPgN/rxyOuVav+8fjEWiXqD6Zle/HgGvUKEU2ydiOs=";
+  vendorHash = "sha256-eeSB7YtlYSnLNgT5NW/IMCocWhNRTfEb2xCijEgmZgQ=";
 
   subPackages = [ "." ];
   tags = [ "nogui" ];
