@@ -24,7 +24,6 @@ in
   moor = callPackage ./moor { };
   moshi-hook = callPackage ./moshi-hook { };
   multi-scrobbler = callPackage ./multi-scrobbler { };
-  ovis = callPackage ./ovis { };
   pi-coding-agent = callPackage ./pi-coding-agent { };
   pi-distribution = callPackage ./pi-distribution { };
   sing-box = callPackage ./sing-box { };
