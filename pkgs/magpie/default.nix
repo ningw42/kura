@@ -10,13 +10,13 @@
 
 buildGoModule (finalAttrs: {
   pname = "magpie";
-  version = "0.1.4679";
+  version = "0.1.4684";
 
   src = fetchFromGitHub {
     owner = "yetone";
     repo = "magpie";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-Jo8q751Hgihy9bBVYudPCTSQRNS+GQgXNVFUXn6lmYQ=";
+    hash = "sha256-B0eMqZpsTl5MWOkX19Dwt1PAnOhWbxg14/niz3gI1jM=";
   };
 
   # Keep dependencies outside the source tree scanned by upstream's tests.
