@@ -9,7 +9,7 @@
 
 buildGo127Module (finalAttrs: {
   pname = "moor";
-  version = "2.19.7";
+  version = "2.19.8";
 
   src = fetchFromGitHub {
     owner = "walles";
@@ -17,7 +17,7 @@ buildGo127Module (finalAttrs: {
     # Pin via `rev` (bare tag), not `tag`, so nix-update doesn't re-fetch the
     # dependency hashes on every no-op update. See AGENTS.md ("rev vs tag").
     rev = "v${finalAttrs.version}";
-    hash = "sha256-eROOps/mQp/8epjLUWF1pZPKi0gtgQBWyuo+3SE7SJE=";
+    hash = "sha256-/Qn2KOzIdPwdxr+menN55yco3MH9W0PYHegnWNCuElE=";
   };
 
   vendorHash = "sha256-QOReO/s3DXtieeMhNWyJTPGZNVh+mEki7H91qezRtQ8=";
