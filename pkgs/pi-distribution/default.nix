@@ -8,17 +8,17 @@
 
 buildNpmPackage (finalAttrs: {
   pname = "pi-distribution";
-  version = "26.11.25";
+  version = "26.11.26";
 
   src = fetchFromGitHub {
     owner = "ningw42";
     repo = "pi-distribution";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-BZ3r2BN36/39TQ/MpuCkPfXrfHPmfqexifnUfwWIdYM=";
+    hash = "sha256-DEdRQ3D1WJF/jY3HeCoGgeohX+D+tbc0VFTbw+ph044=";
   };
 
   npmDepsFetcherVersion = 2;
-  npmDepsHash = "sha256-Q4271B4Apd5cqtoozaZuVVSKAmxIn9pch5G4xFOdrS8=";
+  npmDepsHash = "sha256-H7lPo3PwaP9Lq7/422W2EV7H9JW124dgp6XuRjtz5pc=";
 
   # The package ships TypeScript extensions directly for Pi to load.
   dontNpmBuild = true;
